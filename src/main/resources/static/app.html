@@ -98,18 +98,25 @@
     modeSel.addEventListener('change', setApiFromMode);
     setApiFromMode();
 
-    async function safeFetch(url, opts={}) {
+    async function safeFetch(url, opts = {}) {
       const res = await fetch(url, {
         ...opts,
         headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) }
       });
+      const raw = await res.text().catch(()=> '');
+      let data = null;
+      try { data = raw ? JSON.parse(raw) : null; } catch {}
       if (!res.ok) {
-        const text = await res.text().catch(()=> '');
-        throw new Error(`HTTP ${res.status} — ${text || res.statusText}`);
+        const msg =
+          (data && (data.message || data.detail)) ||
+          raw ||                                  // <- muestra el body tal cual si no es JSON
+          res.statusText || 'Error';
+        throw new Error(`HTTP ${res.status} — ${msg}`);
       }
-      const ct = res.headers.get('content-type') || '';
-      return ct.includes('application/json') ? res.json() : res.text();
+      return data ?? raw;
     }
+
+
 
     function renderList(items) {
       if (!Array.isArray(items) || items.length === 0) {

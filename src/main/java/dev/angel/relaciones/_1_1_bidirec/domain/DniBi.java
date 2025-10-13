@@ -1,4 +1,4 @@
-package dev.angel.relaciones._1_1_BIDIREC;
+package dev.angel.relaciones._1_1_bidirec.domain;
 
 import jakarta.persistence.*;
 
@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Entity(name = "DniBI")
 @Table(name = "DniBI")
-public class DniBI {
+public class DniBi {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,9 +19,9 @@ public class DniBI {
     @OneToOne
     @JoinColumn(name = "persona_id", unique = true, nullable = false)
     @com.fasterxml.jackson.annotation.JsonBackReference
-    private PersonaBI personaBI;
+    private PersonaBi personaBI;
 
-    public DniBI() {
+    public DniBi() {
         super();
     }
 
@@ -49,11 +49,11 @@ public class DniBI {
         this.fechaExpedicion = fechaExpedicion;
     }
 
-    public PersonaBI getPersonaBI() {
+    public PersonaBi getPersonaBI() {
         return personaBI;
     }
 
-    public void setPersonaBI(PersonaBI persona) {
+    public void setPersonaBI(PersonaBi persona) {
         this.personaBI = persona;
         // Evita recursión infinita y mantiene ambos lados sincronizados
         if (persona != null && persona.getDni() != this) {

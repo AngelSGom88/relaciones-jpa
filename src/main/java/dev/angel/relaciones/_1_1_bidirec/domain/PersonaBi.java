@@ -1,10 +1,10 @@
-package dev.angel.relaciones._1_1_BIDIREC;
+package dev.angel.relaciones._1_1_bidirec.domain;
 
 import jakarta.persistence.*;
 
 @Entity(name = "PersonaBI")
 @Table(name = "PersonaBI")
-public class PersonaBI {
+public class PersonaBi {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -14,17 +14,17 @@ public class PersonaBI {
 
     @OneToOne(mappedBy = "personaBI", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @com.fasterxml.jackson.annotation.JsonManagedReference
-    private DniBI dniBI;
+    private DniBi dniBI;
 
-    public PersonaBI() {
+    public PersonaBi() {
         super();
     }
 
-    public DniBI getDni() {
+    public DniBi getDni() {
         return dniBI;
     }
 
-    public void setDni(DniBI dni) {
+    public void setDni(DniBi dni) {
         this.dniBI = dni;
         // Evita recursión infinita y mantiene ambos lados sincronizados
         if (dni != null && dni.getPersonaBI() != this) {

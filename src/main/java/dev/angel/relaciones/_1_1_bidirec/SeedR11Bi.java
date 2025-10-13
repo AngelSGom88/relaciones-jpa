@@ -1,5 +1,8 @@
-package dev.angel.relaciones._1_1_BIDIREC;
+package dev.angel.relaciones._1_1_bidirec;
 
+import dev.angel.relaciones._1_1_bidirec.domain.DniBi;
+import dev.angel.relaciones._1_1_bidirec.domain.PersonaBi;
+import dev.angel.relaciones._1_1_bidirec.repository.PersonaBiRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,14 +13,14 @@ import java.time.LocalDate;
 public class SeedR11Bi {
 
     @Bean
-    CommandLineRunner initData(PersonaBIRepository personaRepository) {
+    CommandLineRunner initData(PersonaBiRepository personaRepository) {
         return args -> {
 
             // 🔹 Persona 1
-            PersonaBI ada = new PersonaBI();
+            PersonaBi ada = new PersonaBi();
             ada.setNombre("Ada");
 
-            DniBI dniAda = new DniBI();
+            DniBi dniAda = new DniBi();
             dniAda.setNumero("12345678A");
             dniAda.setFechaExpedicion(LocalDate.of(2024, 9, 23));
 
@@ -29,10 +32,10 @@ public class SeedR11Bi {
 
 
             // 🔹 Persona 2
-            PersonaBI alan = new PersonaBI();
+            PersonaBi alan = new PersonaBi();
             alan.setNombre("Alan");
 
-            DniBI dniAlan = new DniBI();
+            DniBi dniAlan = new DniBi();
             dniAlan.setNumero("87654321B");
             dniAlan.setFechaExpedicion(LocalDate.of(2024, 9, 24));
 
