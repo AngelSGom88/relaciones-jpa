@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <title>Personas R11-BI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <style>
+        body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px;background:#0b1220;color:#e8eefc}
+        h1{margin:0 0 16px}
+        .row{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+        .card{background:#111a2e;border:1px solid #1e2a4a;border-radius:14px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+        label{display:block;margin:.5rem 0 .25rem}
+        input{width:100%;padding:.6rem;border-radius:8px;border:1px solid #2a3a64;background:#0f172a;color:#e8eefc}
+        button{margin-top:12px;padding:.7rem 1rem;border:0;border-radius:10px;background:#3b82f6;color:#fff;cursor:pointer}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:.6rem;border-bottom:1px solid #24355f}
+        .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem;color:#a5b4fc}
+    </style>
+</head>
+<body>
+<h1>Personas R11-BI</h1>
+<div class="row">
+    <div class="card">
+        <h3>Listado</h3>
+        <button id="btnLoad">Recargar</button>
+        <table id="tbl">
+            <thead><tr><th>ID</th><th>Nombre</th><th>DNI</th><th>Fecha expedición</th></tr></thead>
+            <tbody></tbody>
+        </table>
+        <p class="mono" id="status"></p>
+    </div>
+    <div class="card">
+        <h3>Crear Persona + DNI</h3>
+        <label>Nombre</label>
+        <input id="nombre" placeholder="Ada Lovelace"/>
+        <label>Número DNI</label>
+        <input id="numero" placeholder="12345678A" maxlength="9"/>
+        <label>Fecha expedición</label>
+        <input id="fecha" type="date"/>
+        <button id="btnCreate">Crear</button>
+        <p class="mono" id="msg"></p>
+    </div>
+</div>
+
+<script>
+    const API = 'http://localhost:8081/r11bi/personas';
+
+    async function load() {
+      setStatus('Cargando...');
+      try {
+        const res = await fetch(API);
+        const data = await res.json();
+        const tbody = document.querySelector('#tbl tbody');
+        tbody.innerHTML = '';
+        data.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${p.id ?? ''}</td>
+            <td>${p.nombre ?? ''}</td>
+            <td>${p.dni?.numero ?? ''}</td>
+            <td>${p.dni?.fechaExpedicion ?? ''}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+        setStatus(`OK (${data.length} registros)`);
+      } catch (e) {
+        setStatus('Error cargando lista: ' + e);
+      }
+    }
+
+    async function create() {
+      const nombre = document.getElementById('nombre').value.trim();
+      const numero = document.getElementById('numero').value.trim();
+      const fecha  = document.getElementById('fecha').value;
+
+      if (!nombre || !numero || !fecha) {
+        setMsg('Rellena nombre, número y fecha.');
+        return;
+      }
+
+      const body = { nombre, dni: { numero, fechaExpedicion: fecha } };
+
+      try {
+        setMsg('Creando...');
+        const res = await fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const saved = await res.json();
+        setMsg('Creado ID ' + saved.id);
+        await load();
+      } catch (e) {
+        setMsg('Error creando: ' + e);
+      }
+    }
+
+    function setStatus(t){ document.getElementById('status').textContent = t; }
+    function setMsg(t){ document.getElementById('msg').textContent = t; }
+
+    document.getElementById('btnLoad').onclick = load;
+    document.getElementById('btnCreate').onclick = create;
+    load();
+</script>
+</body>
+</html>
