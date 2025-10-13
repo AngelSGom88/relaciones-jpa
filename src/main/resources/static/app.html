@@ -1,107 +1,236 @@
 <!doctype html>
 <html lang="es">
 <head>
-    <meta charset="utf-8"/>
-    <title>Personas R11-BI</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta charset="utf-8" />
+    <title>Relaciones JPA — 1 a 1 (UNI / BI)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
-        body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:24px;background:#0b1220;color:#e8eefc}
-        h1{margin:0 0 16px}
-        .row{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-        .card{background:#111a2e;border:1px solid #1e2a4a;border-radius:14px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,.25)}
-        label{display:block;margin:.5rem 0 .25rem}
-        input{width:100%;padding:.6rem;border-radius:8px;border:1px solid #2a3a64;background:#0f172a;color:#e8eefc}
-        button{margin-top:12px;padding:.7rem 1rem;border:0;border-radius:10px;background:#3b82f6;color:#fff;cursor:pointer}
-        table{width:100%;border-collapse:collapse}
-        th,td{padding:.6rem;border-bottom:1px solid #24355f}
-        .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9rem;color:#a5b4fc}
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;max-width:900px;margin:24px auto;padding:0 16px}
+        header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:16px}
+        select,input,button,textarea{font:inherit;padding:.5rem;border:1px solid #ddd;border-radius:8px}
+        button{cursor:pointer}
+        .row{display:flex;gap:12px;flex-wrap:wrap}
+        .card{border:1px solid #eee;border-radius:12px;padding:12px;margin:8px 0}
+        .muted{color:#666}
+        pre{background:#fafafa;border:1px solid #eee;border-radius:8px;padding:8px;overflow:auto}
+        form{display:grid;gap:8px;margin:8px 0}
+        .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .danger{background:#ffecec;border-color:#ffd0d0}
+        .ok{background:#eefaf1;border-color:#d6f5df}
     </style>
 </head>
 <body>
-<h1>Personas R11-BI</h1>
-<div class="row">
-    <div class="card">
-        <h3>Listado</h3>
-        <button id="btnLoad">Recargar</button>
-        <table id="tbl">
-            <thead><tr><th>ID</th><th>Nombre</th><th>DNI</th><th>Fecha expedición</th></tr></thead>
-            <tbody></tbody>
-        </table>
-        <p class="mono" id="status"></p>
+<header>
+    <h1 style="margin:0">Relaciones 1–1</h1>
+    <label>
+        Modo:
+        <select id="mode">
+            <option value="uni">Unidireccional (/r11uni/personas)</option>
+            <option value="bi">Bidireccional (/r11bi/personas)</option>
+        </select>
+    </label>
+    <label style="flex:1;min-width:260px">
+        API base:
+        <input id="apiBase" type="text" value="http://localhost:8081/r11uni/personas" />
+    </label>
+    <button id="reload">Recargar lista</button>
+</header>
+
+<section class="card">
+    <h2 style="margin-top:0">Listado</h2>
+    <div id="list" class="muted">Pulsa “Recargar lista”.</div>
+</section>
+
+<section class="card">
+    <h2 style="margin-top:0">Crear persona</h2>
+    <form id="createForm">
+        <div class="grid2">
+            <input name="nombre" placeholder="Nombre" required />
+            <input name="numero" placeholder="DNI — número (p.e. 12345678A)" required />
+        </div>
+        <input name="fecha" type="date" required />
+        <button>Crear (POST)</button>
+    </form>
+    <div id="createMsg" class="muted"></div>
+</section>
+
+<section class="card">
+    <h2 style="margin-top:0">Actualizar persona</h2>
+    <form id="updateForm">
+        <div class="grid2">
+            <input name="id" placeholder="ID persona" required />
+            <input name="nombre" placeholder="Nombre (opcional)" />
+        </div>
+        <div class="grid2">
+            <input name="numero" placeholder="DNI — número (opcional)" />
+            <input name="fecha" type="date" />
+        </div>
+        <button>Actualizar (PUT)</button>
+    </form>
+    <div class="muted">TIP: Enviar DNI vacío borrará el DNI si eliges “Quitar DNI” abajo.</div>
+    <div style="margin-top:8px">
+        <button id="removeDni">Quitar DNI (PUT dni=null)</button>
     </div>
-    <div class="card">
-        <h3>Crear Persona + DNI</h3>
-        <label>Nombre</label>
-        <input id="nombre" placeholder="Ada Lovelace"/>
-        <label>Número DNI</label>
-        <input id="numero" placeholder="12345678A" maxlength="9"/>
-        <label>Fecha expedición</label>
-        <input id="fecha" type="date"/>
-        <button id="btnCreate">Crear</button>
-        <p class="mono" id="msg"></p>
-    </div>
-</div>
+    <div id="updateMsg" class="muted"></div>
+</section>
+
+<section class="card danger">
+    <h2 style="margin-top:0">Eliminar persona</h2>
+    <form id="deleteForm" class="row">
+        <input name="id" placeholder="ID persona" required />
+        <button>Eliminar (DELETE)</button>
+    </form>
+    <div id="deleteMsg" class="muted"></div>
+</section>
 
 <script>
-    const API = 'http://localhost:8081/r11bi/personas';
+    const modeSel = document.getElementById('mode');
+    const apiBase = document.getElementById('apiBase');
+    const listDiv = document.getElementById('list');
+    const reloadBtn = document.getElementById('reload');
 
-    async function load() {
-      setStatus('Cargando...');
-      try {
-        const res = await fetch(API);
-        const data = await res.json();
-        const tbody = document.querySelector('#tbl tbody');
-        tbody.innerHTML = '';
-        data.forEach(p => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${p.id ?? ''}</td>
-            <td>${p.nombre ?? ''}</td>
-            <td>${p.dni?.numero ?? ''}</td>
-            <td>${p.dni?.fechaExpedicion ?? ''}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-        setStatus(`OK (${data.length} registros)`);
-      } catch (e) {
-        setStatus('Error cargando lista: ' + e);
+    function setApiFromMode() {
+      const m = modeSel.value;
+      apiBase.value = m === 'uni'
+        ? 'http://localhost:8081/r11uni/personas'
+        : 'http://localhost:8081/r11bi/personas';
+    }
+    modeSel.addEventListener('change', setApiFromMode);
+    setApiFromMode();
+
+    async function safeFetch(url, opts={}) {
+      const res = await fetch(url, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) }
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(()=> '');
+        throw new Error(`HTTP ${res.status} — ${text || res.statusText}`);
       }
+      const ct = res.headers.get('content-type') || '';
+      return ct.includes('application/json') ? res.json() : res.text();
     }
 
-    async function create() {
-      const nombre = document.getElementById('nombre').value.trim();
-      const numero = document.getElementById('numero').value.trim();
-      const fecha  = document.getElementById('fecha').value;
-
-      if (!nombre || !numero || !fecha) {
-        setMsg('Rellena nombre, número y fecha.');
+    function renderList(items) {
+      if (!Array.isArray(items) || items.length === 0) {
+        listDiv.innerHTML = '<div class="muted">No hay personas.</div>';
         return;
       }
-
-      const body = { nombre, dni: { numero, fechaExpedicion: fecha } };
-
-      try {
-        setMsg('Creando...');
-        const res = await fetch(API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const saved = await res.json();
-        setMsg('Creado ID ' + saved.id);
-        await load();
-      } catch (e) {
-        setMsg('Error creando: ' + e);
-      }
+      listDiv.innerHTML = items.map(p => {
+        const dni = p.dni ? `
+          <div class="muted">
+            DNI #${p.dni.id ?? '-'} — ${p.dni.numero ?? '-'} — ${p.dni.fechaExpedicion ?? '-'}
+          </div>` : `<div class="muted">Sin DNI</div>`;
+        return `
+          <div class="card">
+            <div><strong>#${p.id}</strong> — ${p.nombre ?? '-'}</div>
+            ${dni}
+            <pre>${escapeHtml(JSON.stringify(p, null, 2))}</pre>
+          </div>`;
+      }).join('');
     }
 
-    function setStatus(t){ document.getElementById('status').textContent = t; }
-    function setMsg(t){ document.getElementById('msg').textContent = t; }
+    function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]))}
 
-    document.getElementById('btnLoad').onclick = load;
-    document.getElementById('btnCreate').onclick = create;
-    load();
+    async function loadList(){
+      listDiv.textContent = 'Cargando...';
+      try {
+        const data = await safeFetch(apiBase.value);
+        renderList(data);
+      } catch (e) {
+        listDiv.innerHTML = `<div class="danger card">Error cargando: ${e.message}</div>`;
+      }
+    }
+    reloadBtn.addEventListener('click', loadList);
+
+    // Crear
+    const createForm = document.getElementById('createForm');
+    const createMsg  = document.getElementById('createMsg');
+    createForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      createMsg.textContent = 'Creando...';
+      const fd = new FormData(createForm);
+      const body = {
+        nombre: fd.get('nombre'),
+        dni: {
+          numero: fd.get('numero'),
+          fechaExpedicion: fd.get('fecha')
+        }
+      };
+      try {
+        const data = await safeFetch(apiBase.value, { method: 'POST', body: JSON.stringify(body) });
+        createMsg.innerHTML = `<span class="ok card">Creado ID ${data.id}</span>`;
+        createForm.reset();
+        loadList();
+      } catch (e) {
+        createMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
+      }
+    });
+
+    // Actualizar (PUT)
+    const updateForm = document.getElementById('updateForm');
+    const updateMsg  = document.getElementById('updateMsg');
+    updateForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      updateMsg.textContent = 'Actualizando...';
+      const fd = new FormData(updateForm);
+      const id   = fd.get('id');
+      const nombre = fd.get('nombre') || null;
+      const numero = fd.get('numero') || null;
+      const fecha  = fd.get('fecha') || null;
+
+      // Construimos el body según lo enviado
+      const body = { nombre };
+      if (numero || fecha) {
+        body.dni = {};
+        if (numero) body.dni.numero = numero;
+        if (fecha)  body.dni.fechaExpedicion = fecha;
+      }
+      // Si no se envía ni numero ni fecha, no incluimos 'dni' (no tocar DNI)
+      try {
+        const data = await safeFetch(`${apiBase.value}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        updateMsg.innerHTML = `<span class="ok card">Actualizado ID ${data.id}</span>`;
+        updateForm.reset();
+        loadList();
+      } catch (e) {
+        updateMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
+      }
+    });
+
+    // Quitar DNI (dni = null) vía PUT
+    document.getElementById('removeDni').addEventListener('click', async () => {
+      const id = (new FormData(updateForm)).get('id');
+      if (!id) { updateMsg.textContent = 'Indica un ID en el formulario de actualización.'; return; }
+      updateMsg.textContent = 'Quitando DNI...';
+      const body = { nombre: null, dni: null }; // tu controlador UNI lo soporta
+      try {
+        const data = await safeFetch(`${apiBase.value}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        updateMsg.innerHTML = `<span class="ok card">DNI eliminado en ID ${data.id}</span>`;
+        loadList();
+      } catch (e) {
+        updateMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
+      }
+    });
+
+    // Eliminar
+    const deleteForm = document.getElementById('deleteForm');
+    const deleteMsg  = document.getElementById('deleteMsg');
+    deleteForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      deleteMsg.textContent = 'Eliminando...';
+      const id = (new FormData(deleteForm)).get('id');
+      try {
+        await safeFetch(`${apiBase.value}/${id}`, { method: 'DELETE' });
+        deleteMsg.innerHTML = `<span class="ok card">Eliminado ID ${id}</span>`;
+        deleteForm.reset();
+        loadList();
+      } catch (e) {
+        deleteMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
+      }
+    });
+
+    // Auto-cargar al abrir
+    loadList();
 </script>
 </body>
 </html>

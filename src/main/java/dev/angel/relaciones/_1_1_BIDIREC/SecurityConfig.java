@@ -16,23 +16,14 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain filter(HttpSecurity http) throws Exception {
         return http
+                .csrf(csrf -> csrf.disable())                // sin CSRF (para POST/PUT/DELETE desde fetch)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/r11bi/personas/**").authenticated()
-                        .anyRequest().permitAll()
+                        .anyRequest().permitAll()                  // TODO permitido
                 )
-                .httpBasic(Customizer.withDefaults()) // Login básico (ventanita del navegador)
+                .httpBasic(basic -> basic.disable())         // sin basic auth
+                .formLogin(form -> form.disable())           // sin login form
                 .build();
-    }
-
-    @Bean
-    public UserDetailsService userDetailsService() {
-        UserDetails user = User.withDefaultPasswordEncoder()
-                .username("angel")
-                .password("1234")
-                .roles("USER")
-                .build();
-        return new InMemoryUserDetailsManager(user);
     }
 }

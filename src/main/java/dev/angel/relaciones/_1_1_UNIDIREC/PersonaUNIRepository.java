@@ -1,4 +1,6 @@
 package dev.angel.relaciones._1_1_UNIDIREC;
 
-public interface PersonaUNIRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PersonaUNIRepository extends JpaRepository<PersonaUNI,Long> {
 }

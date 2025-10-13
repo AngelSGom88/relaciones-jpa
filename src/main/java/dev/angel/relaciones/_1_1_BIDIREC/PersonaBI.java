@@ -12,7 +12,7 @@ public class PersonaBI {
     @Column(nullable = false)
     private String nombre;
 
-    @OneToOne(mappedBy = "personaBI", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "personaBI", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @com.fasterxml.jackson.annotation.JsonManagedReference
     private DniBI dniBI;
 
