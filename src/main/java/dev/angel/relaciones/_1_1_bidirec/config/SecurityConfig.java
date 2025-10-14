@@ -1,4 +1,4 @@
-package dev.angel.relaciones._1_1_bidirec.web;
+package dev.angel.relaciones._1_1_bidirec.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

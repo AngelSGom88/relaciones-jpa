@@ -1,0 +1,35 @@
+<configuration scan="true">
+    <!-- patrón con requestId -->
+    <property name="PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %X{requestId} %logger{36} - %msg%n"/>
+
+    <!-- Consola -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder><pattern>${PATTERN}</pattern></encoder>
+    </appender>
+
+    <!-- Fichero con rotación tiempo+tamaño -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/eventos.log</file>
+        <encoder><pattern>${PATTERN}</pattern></encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/archive/eventos.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxHistory>14</maxHistory>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Niveles (ajusta si quieres menos ruido) -->
+    <logger name="dev.angel.relaciones" level="INFO"/>
+    <!-- SQL de Hibernate (solo si te interesa verlas) -->
+    <!-- <logger name="org.hibernate.SQL" level="DEBUG"/>
+    <logger name="org.hibernate.orm.jdbc.bind" level="TRACE"/> -->
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>
