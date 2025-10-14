@@ -26,7 +26,7 @@ public class SeedR11Bi {
 
             // Enlazamos ambos lados
             ada.setDni(dniAda); // si tienes los setters sincronizados, con esto basta
-            dniAda.setPersonaBI(ada); // <-- solo si tus setters NO sincronizan automáticamente
+            dniAda.setPersona(ada); // <-- solo si tus setters NO sincronizan automáticamente
 
             personaRepository.save(ada); // cascade guarda también el DNI
 
@@ -40,7 +40,7 @@ public class SeedR11Bi {
             dniAlan.setFechaExpedicion(LocalDate.of(2024, 9, 24));
 
             alan.setDni(dniAlan);
-            dniAlan.setPersonaBI(alan); // idem arriba
+            dniAlan.setPersona(alan); // idem arriba
 
             personaRepository.save(alan);
 

@@ -5,8 +5,8 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 
-@Entity(name = "DniBI")
-@Table(name = "DniBI")
+@Entity(name = "DniBi")
+@Table(name = "DniBi")
 public class DniBi {
 
     @Id
@@ -19,7 +19,7 @@ public class DniBi {
     @OneToOne
     @JoinColumn(name = "persona_id", unique = true, nullable = false)
     @com.fasterxml.jackson.annotation.JsonBackReference
-    private PersonaBi personaBI;
+    private PersonaBi persona;
 
     public DniBi() {
         super();
@@ -49,12 +49,12 @@ public class DniBi {
         this.fechaExpedicion = fechaExpedicion;
     }
 
-    public PersonaBi getPersonaBI() {
-        return personaBI;
+    public PersonaBi getPersona() {
+        return persona;
     }
 
-    public void setPersonaBI(PersonaBi persona) {
-        this.personaBI = persona;
+    public void setPersona(PersonaBi persona) {
+        this.persona = persona;
         // Evita recursión infinita y mantiene ambos lados sincronizados
         if (persona != null && persona.getDni() != this) {
             persona.setDni(this);
@@ -63,7 +63,7 @@ public class DniBi {
 
     @Override
     public String toString() {
-        return "DniBI{" +
+        return "DniBi{" +
                 "id=" + id +
                 ", numero='" + numero + '\'' +
                 ", fechaExpedicion=" + fechaExpedicion +

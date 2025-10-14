@@ -1,4 +1,4 @@
-package dev.angel.relaciones._1_1_UNIDIREC;
+package dev.angel.relaciones._1_1_unidirec;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,24 +1,24 @@
-package dev.angel.relaciones._1_1_UNIDIREC;
+package dev.angel.relaciones._1_1_unidirec.domain;
 
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
 
-@Entity(name = "DniUNI")
-@Table(name = "DniUNI")
-public class DniUNI {
+@Entity(name = "DniUni")
+@Table(name = "DniUni")
+public class DniUni {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String numero;
 
     @Column(nullable = false)
     private LocalDate fechaExpedicion;
 
-    public DniUNI() {
+    public DniUni() {
         super();
     }
 
@@ -48,7 +48,7 @@ public class DniUNI {
 
     @Override
     public String toString() {
-        return "DniUNI{" +
+        return "Dni{" +
                 "id=" + id +
                 ", numero='" + numero + '\'' +
                 ", fechaExpedicion=" + fechaExpedicion +

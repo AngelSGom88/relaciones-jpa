@@ -43,8 +43,8 @@ public class PersonaBiService {
         }
 
         // Sincroniza lados BI (por si el JSON viene sin enlazar)
-        if (p.getDni() != null && p.getDni().getPersonaBI() != p) {
-            p.getDni().setPersonaBI(p);
+        if (p.getDni() != null && p.getDni().getPersona() != p) {
+            p.getDni().setPersona(p);
         }
 
         return personaRepo.save(p);
@@ -67,7 +67,7 @@ public class PersonaBiService {
             // Para evitar constraint, borramos el DNI y luego desacoplamos.
             if (p.getDni() != null) {
                 DniBi actual = p.getDni();
-                actual.setPersonaBI(null);
+                actual.setPersona(null);
                 p.setDni(null);
                 dniRepo.delete(actual); // elimina la fila de dni
             }
@@ -86,7 +86,7 @@ public class PersonaBiService {
             if (p.getDni() == null) {
                 // No tenía DNI: asignamos uno nuevo y sincronizamos el lado inverso
                 p.setDni(dniBody);
-                dniBody.setPersonaBI(p);
+                dniBody.setPersona(p);
             } else {
                 // Ya tenía DNI: actualizamos campos
                 p.getDni().setNumero(dniBody.getNumero());
@@ -107,7 +107,7 @@ public class PersonaBiService {
         // Si hay DNI asociado, limpia relación y elimina el DNI (para no dejar colgando la FK del owning side)
         if (p.getDni() != null) {
             DniBi actual = p.getDni();
-            actual.setPersonaBI(null);
+            actual.setPersona(null);
             p.setDni(null);
             dniRepo.delete(actual);
         }

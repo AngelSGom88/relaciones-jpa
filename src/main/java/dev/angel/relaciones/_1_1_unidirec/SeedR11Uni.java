@@ -1,6 +1,9 @@
-package dev.angel.relaciones._1_1_UNIDIREC;
+package dev.angel.relaciones._1_1_unidirec;
 
 
+import dev.angel.relaciones._1_1_unidirec.domain.DniUni;
+import dev.angel.relaciones._1_1_unidirec.domain.PersonaUni;
+import dev.angel.relaciones._1_1_unidirec.repository.PersonaUniRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,33 +14,33 @@ import java.time.LocalDate;
 public class SeedR11Uni {
 
     @Bean
-    CommandLineRunner initData(PersonaUNIRepository personaRepository) {
+    CommandLineRunner initData(PersonaUniRepository personaRepository) {
         return args -> {
 
             // 🔹 Persona 1
-            PersonaUNI ada = new PersonaUNI();
+            PersonaUni ada = new PersonaUni();
             ada.setNombre("Ada");
 
-            DniUNI dniAda = new DniUNI();
+            DniUni dniAda = new DniUni();
             dniAda.setNumero("12345678A");
             dniAda.setFechaExpedicion(LocalDate.of(2024, 9, 23));
 
             // Enlazamos ambos lados
-            ada.setDniUNI(dniAda); // si tienes los setters sincronizados, con esto basta
+            ada.setDni(dniAda); // si tienes los setters sincronizados, con esto basta
 
 
             personaRepository.save(ada); // cascade guarda también el DNI
 
 
             // 🔹 Persona 2
-            PersonaUNI alan = new PersonaUNI();
+            PersonaUni alan = new PersonaUni();
             alan.setNombre("Alan");
 
-            DniUNI dniAlan = new DniUNI();
+            DniUni dniAlan = new DniUni();
             dniAlan.setNumero("87654321B");
             dniAlan.setFechaExpedicion(LocalDate.of(2024, 9, 24));
 
-            alan.setDniUNI(dniAlan);
+            alan.setDni(dniAlan);
 
 
             personaRepository.save(alan);
@@ -51,7 +54,7 @@ public class SeedR11Uni {
 
             System.out.println("\n🔍 Persona cuyo DNI empieza por 123:");
             personaRepository.findAll().stream()
-                    .filter(p -> p.getDniUNI() != null && p.getDniUNI().getNumero().startsWith("123"))
+                    .filter(p -> p.getDni() != null && p.getDni().getNumero().startsWith("123"))
                     .forEach(System.out::println);
         };
     }

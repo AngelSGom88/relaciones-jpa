@@ -1,11 +1,11 @@
-package dev.angel.relaciones._1_1_UNIDIREC;
+package dev.angel.relaciones._1_1_unidirec.domain;
 
 
 import jakarta.persistence.*;
 
 @Entity(name = "PersonaUNI")
 @Table(name = "PersonaUNI")
-public class PersonaUNI {
+public class PersonaUni {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,10 +15,9 @@ public class PersonaUNI {
 
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     @JoinColumn(name="dni_id")
-    @com.fasterxml.jackson.annotation.JsonManagedReference
-    private DniUNI dniUNI;
+    private DniUni dni;
 
-    public PersonaUNI() {
+    public PersonaUni() {
         super();
     }
 
@@ -38,17 +37,17 @@ public class PersonaUNI {
         this.id = id;
     }
 
-    public DniUNI getDniUNI() {
-        return dniUNI;
+    public DniUni getDni() {
+        return dni;
     }
 
-    public void setDniUNI(DniUNI dniUNI) {
-        this.dniUNI = dniUNI;
+    public void setDni(DniUni dniUni) {
+        this.dni = dniUni;
     }
 
     @Override
     public String toString() {
-        return "PersonaUNI{" +
+        return "Persona{" +
                 "nombre='" + nombre + '\'' +
                 ", id=" + id +
                 '}';
