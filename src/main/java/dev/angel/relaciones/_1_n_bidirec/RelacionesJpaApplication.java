@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(
 		scanBasePackages = {
-				"dev.angel.relaciones._1_N_bidirec",   // solo uni
+				"dev.angel.relaciones._1_N_bidirec",   // solo bi
 				"dev.angel.relaciones.exception"       // handler global
 		}
 )

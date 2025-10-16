@@ -1,242 +1,393 @@
 <!doctype html>
 <html lang="es">
 <head>
-    <meta charset="utf-8" />
-    <title>Relaciones JPA — 1 a 1 (UNI / BI)</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta charset="utf-8"/>
+    <title>Relaciones JPA — 1–1 (BI/UNI) y 1–N (BI)</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;max-width:900px;margin:24px auto;padding:0 16px}
-        header{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:16px}
-        select,input,button,textarea{font:inherit;padding:.5rem;border:1px solid #ddd;border-radius:8px}
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;max-width:1050px;margin:24px auto;padding:0 16px}
+        header,.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+        select,input,button{font:inherit;padding:.5rem;border:1px solid #ddd;border-radius:10px}
         button{cursor:pointer}
-        .row{display:flex;gap:12px;flex-wrap:wrap}
-        .card{border:1px solid #eee;border-radius:12px;padding:12px;margin:8px 0}
-        .muted{color:#666}
-        pre{background:#fafafa;border:1px solid #eee;border-radius:8px;padding:8px;overflow:auto}
-        form{display:grid;gap:8px;margin:8px 0}
+        .card{border:1px solid #eee;border-radius:14px;padding:14px;margin:10px 0}
+        .muted{color:#666} .danger{background:#ffecec;border-color:#ffd0d0} .ok{background:#eefaf1;border-color:#d6f5df}
+        pre{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px;overflow:auto}
         .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-        .danger{background:#ffecec;border-color:#ffd0d0}
-        .ok{background:#eefaf1;border-color:#d6f5df}
+        .addr-row,.dni-row{display:grid;gap:6px;align-items:center}
+        .addr-row{grid-template-columns:repeat(5,1fr) auto}
+        .dni-row{grid-template-columns:repeat(2,1fr)}
+        .addr-row button{padding:.35rem .6rem}
+        small.hint{display:block;margin-top:-6px;color:#777}
     </style>
 </head>
 <body>
 <header>
-    <h1 style="margin:0">Relaciones 1–1</h1>
-    <label>
-        Modo:
-        <select id="mode">
-            <option value="uni">Unidireccional (/r11uni/personas)</option>
-            <option value="bi">Bidireccional (/r11bi/personas)</option>
-        </select>
-    </label>
-    <label style="flex:1;min-width:260px">
-        API base:
-        <input id="apiBase" type="text" value="http://localhost:8081/r11uni/personas" />
-    </label>
-    <button id="reload">Recargar lista</button>
+    <h1 style="margin:0">Relaciones JPA — Demo (1–1 BI/UNI, 1–N BI)</h1>
+    <div class="row">
+        <label>Relación
+            <select id="rel">
+                <option value="1-1">1–1</option>
+                <option value="1-N">1–N</option>
+            </select>
+        </label>
+        <label>Variante
+            <select id="variant"></select>
+        </label>
+        <label>Base API
+            <input id="apiBase" size="34"/>
+        </label>
+        <button id="reload" type="button">Recargar lista</button>
+    </div>
 </header>
 
 <section class="card">
-    <h2 style="margin-top:0">Listado</h2>
+    <h2 style="margin:0">Listado</h2>
     <div id="list" class="muted">Pulsa “Recargar lista”.</div>
 </section>
 
-<section class="card">
-    <h2 style="margin-top:0">Crear persona</h2>
+<section class="card" id="createCard">
+    <h2 style="margin:0">Crear</h2>
     <form id="createForm">
-        <div class="grid2">
-            <input name="nombre" placeholder="Nombre" required />
-            <input name="numero" placeholder="DNI — número (p.e. 12345678A)" required />
-        </div>
-        <input name="fecha" type="date" required />
-        <button>Crear (POST)</button>
+        <input name="nombre" placeholder="Nombre" required/>
+        <div id="createDynamic"></div>
+        <button type="submit">Crear (POST)</button>
     </form>
     <div id="createMsg" class="muted"></div>
 </section>
 
-<section class="card">
-    <h2 style="margin-top:0">Actualizar persona</h2>
+<section class="card" id="updateCard">
+    <h2 style="margin:0">Actualizar (PUT reemplazo total)</h2>
     <form id="updateForm">
         <div class="grid2">
-            <input name="id" placeholder="ID persona" required />
-            <input name="nombre" placeholder="Nombre (opcional)" />
+            <input name="id" placeholder="ID" required/>
+            <input name="nombre" placeholder="Nombre (opcional)"/>
         </div>
-        <div class="grid2">
-            <input name="numero" placeholder="DNI — número (opcional)" />
-            <input name="fecha" type="date" />
-        </div>
-        <button>Actualizar (PUT)</button>
+        <div id="updateDynamic"></div>
+        <button type="submit">Actualizar (PUT)</button>
     </form>
-    <div class="muted">TIP: Enviar DNI vacío borrará el DNI si eliges “Quitar DNI” abajo.</div>
-    <div style="margin-top:8px">
-        <button id="removeDni">Quitar DNI (PUT dni=null)</button>
-    </div>
     <div id="updateMsg" class="muted"></div>
 </section>
 
+<section class="card">
+    <h2 style="margin:0">Añadir hijo (POST anidado)</h2>
+    <form id="addChildForm">
+        <div class="grid2">
+            <input name="id" placeholder="ID padre" required/>
+            <span id="addChildLabel" class="muted"></span>
+        </div>
+        <div id="addChildDynamic"></div>
+        <button type="submit">Añadir</button>
+    </form>
+    <div id="addChildMsg" class="muted"></div>
+</section>
+
+<section class="card danger" id="delChildCard">
+    <h2 style="margin:0">Eliminar hijo (DELETE anidado)</h2>
+    <form id="delChildForm" class="row">
+        <input name="personaId" placeholder="ID padre" required/>
+        <input name="childId" placeholder="ID hijo" required/>
+        <button type="submit">Eliminar hijo</button>
+    </form>
+    <div id="delChildMsg" class="muted"></div>
+</section>
+
 <section class="card danger">
-    <h2 style="margin-top:0">Eliminar persona</h2>
+    <h2 style="margin:0">Eliminar padre (DELETE)</h2>
     <form id="deleteForm" class="row">
-        <input name="id" placeholder="ID persona" required />
-        <button>Eliminar (DELETE)</button>
+        <input name="id" placeholder="ID" required/>
+        <button type="submit">Eliminar</button>
     </form>
     <div id="deleteMsg" class="muted"></div>
 </section>
 
 <script>
-    const modeSel = document.getElementById('mode');
+    /* ---------- estado persistente ---------- */
+    const LS_KEYS = { rel:'demo.rel', variant:'demo.variant', api:'demo.api' };
+    const rel = document.getElementById('rel');
+    const variant = document.getElementById('variant');
     const apiBase = document.getElementById('apiBase');
     const listDiv = document.getElementById('list');
-    const reloadBtn = document.getElementById('reload');
 
-    function setApiFromMode() {
-      const m = modeSel.value;
-      apiBase.value = m === 'uni'
-        ? 'http://localhost:8081/r11uni/personas'
-        : 'http://localhost:8081/r11bi/personas';
+    function saveState(){
+      localStorage.setItem(LS_KEYS.rel, rel.value);
+      localStorage.setItem(LS_KEYS.variant, variant.value);
+      localStorage.setItem(LS_KEYS.api, apiBase.value);
     }
-    modeSel.addEventListener('change', setApiFromMode);
-    setApiFromMode();
+    function loadState(){
+      const relV = localStorage.getItem(LS_KEYS.rel) || '1-1';
+      rel.value = relV;
+      setVariants(); // construye variant según rel actual
+      const varV = localStorage.getItem(LS_KEYS.variant) || (relV==='1-1' ? '1-1:bi' : '1-N:bi');
+      variant.value = varV;
+      refreshBase(); // pone api por defecto según variant
+      const apiV = localStorage.getItem(LS_KEYS.api);
+      if (apiV) apiBase.value = apiV; // respeta la última manual
+      rebuildDynamicForms();
+    }
 
-    async function safeFetch(url, opts = {}) {
-      const res = await fetch(url, {
-        ...opts,
-        headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) }
-      });
-      const raw = await res.text().catch(()=> '');
-      let data = null;
-      try { data = raw ? JSON.parse(raw) : null; } catch {}
-      if (!res.ok) {
-        const msg =
-          (data && (data.message || data.detail)) ||
-          raw ||                                  // <- muestra el body tal cual si no es JSON
-          res.statusText || 'Error';
-        throw new Error(`HTTP ${res.status} — ${msg}`);
+    /* ---------- opciones ---------- */
+    function addOpt(sel, label, val){ const o=document.createElement('option'); o.value=val; o.textContent=label; sel.appendChild(o); }
+    function setVariants(){
+      variant.innerHTML = '';
+      if(rel.value === '1-1'){
+        addOpt(variant,'BI (/r11bi/personas)','1-1:bi');
+        addOpt(variant,'UNI (/r11uni/personas)','1-1:uni');
+      } else {
+        addOpt(variant,'BI (/r1nbi/personas)','1-N:bi');
       }
+    }
+    function refreshBase(){
+      const v = variant.value;
+      if(v==='1-1:bi') apiBase.value = 'http://localhost:8081/r11bi/personas';
+      if(v==='1-1:uni') apiBase.value = 'http://localhost:8081/r11uni/personas';
+      if(v==='1-N:bi') apiBase.value = 'http://localhost:8081/r1nbi/personas';
+    }
+
+    /* ---------- UI dinámico ---------- */
+    const createDyn = document.getElementById('createDynamic');
+    const updateDyn = document.getElementById('updateDynamic');
+    const addChildDyn = document.getElementById('addChildDynamic');
+    const addChildLabel = document.getElementById('addChildLabel');
+    const delChildCard = document.getElementById('delChildCard');
+
+    function rebuildDynamicForms(){
+      const v = variant.value;
+      if(v.startsWith('1-1')) {
+        createDyn.innerHTML = dniBlock('create');
+        updateDyn.innerHTML = dniBlock('update');
+        addChildDyn.innerHTML = dniBlock('addChild', true);
+        addChildLabel.textContent = 'Añadir/actualizar DNI del padre';
+        delChildCard.style.display = 'none';
+      } else {
+        createDyn.innerHTML = direccionesBlock('create');
+        updateDyn.innerHTML = direccionesBlock('update');
+        addChildDyn.innerHTML = direccionSingleRow('addChild');
+        addChildLabel.textContent = 'Añadir Dirección al padre';
+        delChildCard.style.display = '';
+        wireAddrList(document.getElementById('createAddrs'), 'create');
+        wireAddrList(document.getElementById('updateAddrs'), 'update');
+      }
+      saveState();
+    }
+
+    function dniBlock(prefix, standalone=false){
+      return `
+        <div class="dni-row">
+          <input name="${prefix}.dni.numero" placeholder="DNI.numero" required />
+          <input name="${prefix}.dni.fechaExpedicion" placeholder="DNI.fechaExpedicion (yyyy-mm-dd)" ${standalone?'':'required'} />
+        </div>
+        <small class="hint">1–1: se envía un único objeto <code>dni</code>.</small>
+      `;
+    }
+    function direccionesBlock(prefix){
+      return `
+        <div>
+          <strong>Direcciones</strong>
+          <small class="hint">Rellena calle, ciudad, cp, provincia. Etiqueta es opcional.</small>
+          <div id="${prefix}Addrs"></div>
+          <div class="row">
+            <button type="button" id="addAddr-${prefix}">+ Dirección</button>
+            <button type="button" id="clearAddr-${prefix}">Vaciar</button>
+          </div>
+        </div>
+      `;
+    }
+    function direccionSingleRow(prefix){
+      return `
+        <div class="addr-row">
+          <input name="${prefix}.etiqueta" placeholder="Etiqueta (opcional)"/>
+          <input name="${prefix}.calle" placeholder="Calle" required/>
+          <input name="${prefix}.ciudad" placeholder="Ciudad" required/>
+          <input name="${prefix}.cp" placeholder="CP" required/>
+          <input name="${prefix}.provincia" placeholder="Provincia" required/>
+        </div>
+      `;
+    }
+    function wireAddrList(container, prefix){
+      const addBtn = document.getElementById(`addAddr-${prefix}`);
+      const clearBtn = document.getElementById(`clearAddr-${prefix}`);
+      const add = () => {
+        const idx = container.querySelectorAll('.addr-row').length;
+        container.insertAdjacentHTML('beforeend', `
+          <div class="addr-row">
+            <input name="${prefix}[${idx}].etiqueta" placeholder="Etiqueta (opcional)"/>
+            <input name="${prefix}[${idx}].calle" placeholder="Calle" required/>
+            <input name="${prefix}[${idx}].ciudad" placeholder="Ciudad" required/>
+            <input name="${prefix}[${idx}].cp" placeholder="CP" required/>
+            <input name="${prefix}[${idx}].provincia" placeholder="Provincia" required/>
+            <button type="button" class="rm">✕</button>
+          </div>`);
+        container.querySelector('.addr-row:last-child .rm').onclick = e => e.currentTarget.parentElement.remove();
+      };
+      addBtn.onclick = add;
+      clearBtn.onclick = () => container.innerHTML = '';
+      add(); // arranca con una fila
+    }
+
+    /* ---------- HTTP util ---------- */
+    async function safeFetch(url, opts = {}){
+      const res = await fetch(url, { ...opts, headers: { 'Content-Type':'application/json', ...(opts.headers||{}) }});
+      const raw = await res.text().catch(()=> '');
+      let data = null; try{ data = raw ? JSON.parse(raw) : null; }catch{}
+      if(!res.ok){ const msg = (data&&(data.detail||data.message)) || raw || res.statusText; throw new Error(`HTTP ${res.status} — ${msg}`); }
       return data ?? raw;
     }
+    function esc(s){
+      const map = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' };
+      return (s??'').toString().replace(/[&<>"']/g, m => map[m]);
+    }
 
+    /* ---------- Listado ---------- */
+    async function loadList(){
+      listDiv.textContent = 'Cargando...';
+      try{
+        const data = await safeFetch(apiBase.value);
+        renderList(data);
+      }catch(e){ listDiv.innerHTML = `<div class="card danger">Error: ${e.message}</div>`; }
+    }
+    document.getElementById('reload').onclick = () => { saveState(); loadList(); };
 
-
-    function renderList(items) {
-      if (!Array.isArray(items) || items.length === 0) {
-        listDiv.innerHTML = '<div class="muted">No hay personas.</div>';
-        return;
-      }
-      listDiv.innerHTML = items.map(p => {
-        const dni = p.dni ? `
-          <div class="muted">
-            DNI #${p.dni.id ?? '-'} — ${p.dni.numero ?? '-'} — ${p.dni.fechaExpedicion ?? '-'}
-          </div>` : `<div class="muted">Sin DNI</div>`;
-        return `
-          <div class="card">
-            <div><strong>#${p.id}</strong> — ${p.nombre ?? '-'}</div>
-            ${dni}
-            <pre>${escapeHtml(JSON.stringify(p, null, 2))}</pre>
-          </div>`;
+    function renderList(items){
+      if(!Array.isArray(items)||items.length===0){ listDiv.innerHTML = '<div class="muted">Sin datos.</div>'; return; }
+      const v = variant.value;
+      listDiv.innerHTML = items.map(p=>{
+        let hijosHtml = '';
+        if(v.startsWith('1-1')){
+          const d = p.dni || null;
+          hijosHtml = d ? `<li>DNI #${d.id??'-'} — ${esc(d.numero??'-')}</li>` : '<li class="muted">Sin DNI</li>';
+        } else {
+          hijosHtml = (p.direcciones||[]).map(d=>`<li>#${d.id??'-'} — ${esc(d.calle)}, ${esc(d.ciudad)} ${esc(d.cp)} (${esc(d.provincia)}) ${d.etiqueta? '— '+esc(d.etiqueta):''}</li>`).join('') || '<li class="muted">Sin direcciones</li>';
+        }
+        return `<div class="card">
+          <div><strong>Persona #${p.id}</strong> — ${esc(p.nombre||'-')}</div>
+          <ul>${hijosHtml}</ul>
+          <pre>${esc(JSON.stringify(p,null,2))}</pre>
+        </div>`;
       }).join('');
     }
 
-    function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]))}
+    /* ---------- Crear ---------- */
+    document.getElementById('createForm').addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const msg = document.getElementById('createMsg'); msg.textContent='Creando...';
+      try{
+        const body = buildCreateBody();
+        const d = await safeFetch(apiBase.value, { method:'POST', body: JSON.stringify(body) });
+        msg.innerHTML = `<span class="ok card">Creado ID ${d.id}</span>`;
+        // Resetea solo el formulario de crear, NO los selectores
+        ev.target.reset();
+        // Reponer fila de direcciones si estamos en 1-N BI
+        if (variant.value === '1-N:bi') {
+          const c = document.getElementById('createAddrs'); c.innerHTML=''; wireAddrList(c,'create');
+        }
+        loadList();
+      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
+    });
 
-    async function loadList(){
-      listDiv.textContent = 'Cargando...';
-      try {
-        const data = await safeFetch(apiBase.value);
-        renderList(data);
-      } catch (e) {
-        listDiv.innerHTML = `<div class="danger card">Error cargando: ${e.message}</div>`;
+    function buildCreateBody(){
+      const v = variant.value;
+      const nombre = document.querySelector('#createForm [name="nombre"]').value || null;
+      if(v.startsWith('1-1')){
+        const numero = document.querySelector('[name="create.dni.numero"]').value.trim();
+        const fecha = document.querySelector('[name="create.dni.fechaExpedicion"]').value.trim() || null;
+        return { nombre, dni: { numero, fechaExpedicion: fecha } };
+      } else {
+        const rows = [...document.querySelectorAll('#createAddrs .addr-row')];
+        const direcciones = rows.map(r=>{
+          const q = n => r.querySelector(`[name^="create"][name$=".${n}"]`).value.trim();
+          const etiqueta = q('etiqueta'); const calle=q('calle'); const ciudad=q('ciudad'); const cp=q('cp'); const provincia=q('provincia');
+          if(!calle||!ciudad||!cp||!provincia) throw new Error('Calle/ciudad/cp/provincia obligatorios');
+          return { etiqueta: etiqueta||null, calle, ciudad, cp, provincia };
+        });
+        return { nombre, direcciones };
       }
     }
-    reloadBtn.addEventListener('click', loadList);
 
-    // Crear
-    const createForm = document.getElementById('createForm');
-    const createMsg  = document.getElementById('createMsg');
-    createForm.addEventListener('submit', async (ev) => {
+    /* ---------- Update (PUT) ---------- */
+    document.getElementById('updateForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
-      createMsg.textContent = 'Creando...';
-      const fd = new FormData(createForm);
-      const body = {
-        nombre: fd.get('nombre'),
-        dni: {
-          numero: fd.get('numero'),
-          fechaExpedicion: fd.get('fecha')
+      const msg = document.getElementById('updateMsg'); msg.textContent='Actualizando...';
+      const id = new FormData(ev.target).get('id');
+      try{
+        const body = buildUpdateBody();
+        const d = await safeFetch(`${apiBase.value}/${id}`, { method:'PUT', body: JSON.stringify(body) });
+        msg.innerHTML = `<span class="ok card">Actualizado ID ${d.id}</span>`;
+        ev.target.reset();
+        if (variant.value === '1-N:bi') {
+          const c = document.getElementById('updateAddrs'); c.innerHTML=''; wireAddrList(c,'update');
         }
-      };
-      try {
-        const data = await safeFetch(apiBase.value, { method: 'POST', body: JSON.stringify(body) });
-        createMsg.innerHTML = `<span class="ok card">Creado ID ${data.id}</span>`;
-        createForm.reset();
         loadList();
-      } catch (e) {
-        createMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
-      }
+      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
     });
+    function buildUpdateBody(){
+      const v = variant.value;
+      const nombre = document.querySelector('#updateForm [name="nombre"]').value || null;
+      if(v.startsWith('1-1')){
+        const numero = document.querySelector('[name="update.dni.numero"]').value.trim();
+        const fecha = document.querySelector('[name="update.dni.fechaExpedicion"]').value.trim() || null;
+        return { nombre, dni: { numero, fechaExpedicion: fecha } };
+      } else {
+        const rows = [...document.querySelectorAll('#updateAddrs .addr-row')];
+        const direcciones = rows.map(r=>{
+          const q = n => r.querySelector(`[name^="update"][name$=".${n}"]`).value.trim();
+          const etiqueta = q('etiqueta'); const calle=q('calle'); const ciudad=q('ciudad'); const cp=q('cp'); const provincia=q('provincia');
+          if(!calle||!ciudad||!cp||!provincia) throw new Error('Calle/ciudad/cp/provincia obligatorios');
+          return { etiqueta: etiqueta||null, calle, ciudad, cp, provincia };
+        });
+        return { nombre, direcciones };
+      }
+    }
 
-    // Actualizar (PUT)
-    const updateForm = document.getElementById('updateForm');
-    const updateMsg  = document.getElementById('updateMsg');
-    updateForm.addEventListener('submit', async (ev) => {
+    /* ---------- Añadir hijo (POST anidado) ---------- */
+    document.getElementById('addChildForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
-      updateMsg.textContent = 'Actualizando...';
-      const fd = new FormData(updateForm);
-      const id   = fd.get('id');
-      const nombre = fd.get('nombre') || null;
-      const numero = fd.get('numero') || null;
-      const fecha  = fd.get('fecha') || null;
-
-      // Construimos el body según lo enviado
-      const body = { nombre };
-      if (numero || fecha) {
-        body.dni = {};
-        if (numero) body.dni.numero = numero;
-        if (fecha)  body.dni.fechaExpedicion = fecha;
-      }
-      // Si no se envía ni numero ni fecha, no incluimos 'dni' (no tocar DNI)
-      try {
-        const data = await safeFetch(`${apiBase.value}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
-        updateMsg.innerHTML = `<span class="ok card">Actualizado ID ${data.id}</span>`;
-        updateForm.reset();
-        loadList();
-      } catch (e) {
-        updateMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
-      }
+      const msg = document.getElementById('addChildMsg'); msg.textContent='Añadiendo...';
+      const id = new FormData(ev.target).get('id');
+      try{
+        const v = variant.value;
+        if(v.startsWith('1-1')){
+          throw new Error('Para 1–1 usa POST/PUT del padre con el objeto DNI.');
+        }else{
+          const r = document.querySelector('#addChildDynamic .addr-row');
+          const get = n => r.querySelector(`[name="addChild.${n}"]`).value.trim();
+          const body = { etiqueta: (get('etiqueta')||null),
+                         calle:get('calle'), ciudad:get('ciudad'), cp:get('cp'), provincia:get('provincia') };
+          await safeFetch(`${apiBase.value}/${id}/direcciones`, { method: 'POST', body: JSON.stringify(body) });
+          msg.innerHTML = `<span class="ok card">Añadido</span>`;
+          ev.target.reset(); loadList();
+        }
+      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
     });
 
-    // Quitar DNI (dni = null) vía PUT
-    document.getElementById('removeDni').addEventListener('click', async () => {
-      const id = (new FormData(updateForm)).get('id');
-      if (!id) { updateMsg.textContent = 'Indica un ID en el formulario de actualización.'; return; }
-      updateMsg.textContent = 'Quitando DNI...';
-      const body = { nombre: null, dni: null }; // tu controlador UNI lo soporta
-      try {
-        const data = await safeFetch(`${apiBase.value}/${id}`, { method: 'PUT', body: JSON.stringify(body) });
-        updateMsg.innerHTML = `<span class="ok card">DNI eliminado en ID ${data.id}</span>`;
-        loadList();
-      } catch (e) {
-        updateMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
-      }
-    });
-
-    // Eliminar
-    const deleteForm = document.getElementById('deleteForm');
-    const deleteMsg  = document.getElementById('deleteMsg');
-    deleteForm.addEventListener('submit', async (ev) => {
+    /* ---------- Delete hijo/persona ---------- */
+    document.getElementById('delChildForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
-      deleteMsg.textContent = 'Eliminando...';
-      const id = (new FormData(deleteForm)).get('id');
-      try {
-        await safeFetch(`${apiBase.value}/${id}`, { method: 'DELETE' });
-        deleteMsg.innerHTML = `<span class="ok card">Eliminado ID ${id}</span>`;
-        deleteForm.reset();
-        loadList();
-      } catch (e) {
-        deleteMsg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`;
-      }
+      const msg = document.getElementById('delChildMsg'); msg.textContent='Eliminando...';
+      const fd = new FormData(ev.target);
+      try{
+        await safeFetch(`${apiBase.value}/${fd.get('personaId')}/direcciones/${fd.get('childId')}`, { method:'DELETE' });
+        msg.innerHTML = `<span class="ok card">Eliminado</span>`;
+        ev.target.reset(); loadList();
+      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
+    });
+    document.getElementById('deleteForm').addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const msg = document.getElementById('deleteMsg'); msg.textContent='Eliminando...';
+      const id = new FormData(ev.target).get('id');
+      try{
+        await safeFetch(`${apiBase.value}/${id}`, { method:'DELETE' });
+        msg.innerHTML = `<span class="ok card">Eliminado</span>`;
+        ev.target.reset(); loadList();
+      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
     });
 
-    // Auto-cargar al abrir
+    /* ---------- eventos de selects ---------- */
+    rel.addEventListener('change', () => { setVariants(); refreshBase(); rebuildDynamicForms(); saveState(); });
+    variant.addEventListener('change', () => { refreshBase(); rebuildDynamicForms(); saveState(); });
+    apiBase.addEventListener('change', saveState);
+
+    /* init */
+    loadState(); // restaura estado, construye UI y no toca tu selección al operar
     loadList();
 </script>
 </body>
