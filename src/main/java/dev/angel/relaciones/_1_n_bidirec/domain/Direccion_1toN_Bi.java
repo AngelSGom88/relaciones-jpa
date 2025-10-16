@@ -10,8 +10,8 @@ import java.util.Objects;
 @Table(
         name = "direccion_1n_bi",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_persona_calle_ciudad_cp_prov",
-                columnNames = {"persona_id", "calle", "ciudad", "cp", "provincia"}
+                name = "uk_calle_ciudad_cp_prov",
+                columnNames = {"calle", "ciudad", "cp", "provincia"}
         )
 )
 public class Direccion_1toN_Bi {
@@ -19,7 +19,7 @@ public class Direccion_1toN_Bi {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank private String etiqueta; // "casa", "oficina", ...
+    private String etiqueta; // "casa", "oficina", ...
     @NotBlank private String calle;
     @NotBlank private String ciudad;
     private String provincia;
@@ -40,6 +40,14 @@ public class Direccion_1toN_Bi {
         this.cp = cp;
     }
 
+    public Direccion_1toN_Bi(String calle, String ciudad, String cp, String provincia) {
+        this.calle = calle;
+        this.ciudad = ciudad;
+        this.cp = cp;
+        this.provincia = provincia;
+    }
+
+
     // --- getters & setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -58,4 +66,16 @@ public class Direccion_1toN_Bi {
 
     @Override public boolean equals(Object o){ return o instanceof Direccion_1toN_Bi d && Objects.equals(id, d.id); }
     @Override public int hashCode(){ return Objects.hashCode(id); }
+
+    @Override
+    public String toString() {
+        return "Direccion_1toN_Bi{" +
+                "id=" + id +
+                ", etiqueta='" + etiqueta + '\'' +
+                ", calle='" + calle + '\'' +
+                ", ciudad='" + ciudad + '\'' +
+                ", provincia='" + provincia + '\'' +
+                ", cp='" + cp + '\'' +
+                '}';
+    }
 }

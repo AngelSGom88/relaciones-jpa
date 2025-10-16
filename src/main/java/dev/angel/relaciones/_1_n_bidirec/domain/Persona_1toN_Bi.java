@@ -27,6 +27,10 @@ public class Persona_1toN_Bi {
             fetch = FetchType.LAZY)
     private List<Direccion_1toN_Bi> direcciones = new ArrayList<>();
 
+
+    public Persona_1toN_Bi() {
+    }
+
     // --- helpers bidireccionales ---
     public void addDireccion(Direccion_1toN_Bi d) {
         if (d == null) return;
@@ -60,4 +64,11 @@ public class Persona_1toN_Bi {
     @Override public boolean equals(Object o){ return o instanceof Persona_1toN_Bi p && Objects.equals(id, p.id); }
     @Override public int hashCode(){ return Objects.hashCode(id); }
 
+    @Override
+    public String toString() {
+        return "Persona_1toN_Bi{" +
+                "nombre='" + nombre + '\'' +
+                ", id=" + id +
+                '}';
+    }
 }
