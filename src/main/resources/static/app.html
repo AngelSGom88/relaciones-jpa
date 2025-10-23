@@ -1,394 +1,352 @@
 <!doctype html>
 <html lang="es">
 <head>
-    <meta charset="utf-8"/>
-    <title>Relaciones JPA — 1–1 (BI/UNI) y 1–N (BI)</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta charset="utf-8" />
+    <title>Relaciones JPA – Tester</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;max-width:1050px;margin:24px auto;padding:0 16px}
-        header,.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-        select,input,button{font:inherit;padding:.5rem;border:1px solid #ddd;border-radius:10px}
-        button{cursor:pointer}
-        .card{border:1px solid #eee;border-radius:14px;padding:14px;margin:10px 0}
-        .muted{color:#666} .danger{background:#ffecec;border-color:#ffd0d0} .ok{background:#eefaf1;border-color:#d6f5df}
-        pre{background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px;overflow:auto}
-        .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-        .addr-row,.dni-row{display:grid;gap:6px;align-items:center}
-        .addr-row{grid-template-columns:repeat(5,1fr) auto}
-        .dni-row{grid-template-columns:repeat(2,1fr)}
-        .addr-row button{padding:.35rem .6rem}
-        small.hint{display:block;margin-top:-6px;color:#777}
+        :root { --gap: 10px; --muted:#6b7280; --ok:#16a34a; --err:#dc2626; }
+        body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin:20px; }
+        h1 { margin:0 0 8px; }
+        .row { display:flex; gap:var(--gap); flex-wrap:wrap; align-items:center; }
+        label { font-size:14px; }
+        input, select, button, textarea { padding:8px; font-size:14px; }
+        input[type="number"]{ width:90px; }
+        .card { border:1px solid #e5e7eb; border-radius:10px; padding:12px; margin:10px 0; background:#fff; }
+        .muted { color:var(--muted); }
+        .ok { color:#fff; background:var(--ok); padding:2px 6px; border-radius:6px; }
+        .danger { color:#fff; background:var(--err); padding:8px; border-radius:8px; }
+        pre { background:#f8fafc; border:1px solid #e5e7eb; padding:8px; border-radius:8px; overflow:auto; }
+        .grid { display:grid; gap:var(--gap); grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); }
+        .section-title { margin-top:20px; }
+        .inline { display:inline-block; }
+        .addr-row input { margin-right:6px; }
+        .small { font-size:12px; }
     </style>
 </head>
 <body>
-<header>
-    <h1 style="margin:0">Relaciones JPA — Demo (1–1 BI/UNI, 1–N BI)</h1>
-    <div class="row">
-        <label>Relación
-            <select id="rel">
-                <option value="1-1">1–1</option>
-                <option value="1-N">1–N</option>
-            </select>
-        </label>
-        <label>Variante
-            <select id="variant"></select>
-        </label>
-        <label>Base API
-            <input id="apiBase" size="34"/>
-        </label>
-        <button id="reload" type="button">Recargar lista</button>
+<h1>Relaciones JPA – Tester</h1>
+
+<div class="row card">
+    <div>
+        <label>Relación:</label>
+        <select id="rel">
+            <option value="1-1">1–1</option>
+            <option value="1-N" selected>1–N</option>
+        </select>
     </div>
-</header>
+    <div>
+        <label>Variante:</label>
+        <select id="variant"></select>
+    </div>
+    <div class="small muted">Los endpoints se fijan automáticamente según la variante.</div>
+</div>
 
-<section class="card">
-    <h2 style="margin:0">Listado</h2>
-    <div id="list" class="muted">Pulsa “Recargar lista”.</div>
-</section>
+<div class="grid">
+    <div class="card">
+        <h3 class="section-title">Personas — CRUD</h3>
+        <form id="createForm" class="row">
+            <input name="nombre" placeholder="nombre (crear)" required />
+            <button>Crear</button>
+            <span id="createMsg"></span>
+        </form>
+        <form id="updateForm" class="row">
+            <input name="id" type="number" placeholder="id (update)" required />
+            <input name="nombre" placeholder="nuevo nombre" />
+            <button>Actualizar</button>
+            <span id="updateMsg"></span>
+        </form>
+        <form id="deleteForm" class="row">
+            <input name="id" type="number" placeholder="id (delete)" required />
+            <button>Eliminar</button>
+            <span id="deleteMsg"></span>
+        </form>
+    </div>
 
-<section class="card" id="createCard">
-    <h2 style="margin:0">Crear</h2>
-    <form id="createForm">
-        <input name="nombre" placeholder="Nombre" required/>
-        <div id="createDynamic"></div>
-        <button type="submit">Crear (POST)</button>
-    </form>
-    <div id="createMsg" class="muted"></div>
-</section>
+    <div class="card">
+        <h3 class="section-title">Direcciones — Añadir / Eliminar</h3>
+        <form id="addChildForm">
+            <div class="row">
+                <input name="id" type="number" placeholder="ID persona (padre)" required />
+            </div>
+            <div id="addChildDynamic" class="addr-row">
+                <!-- Se rellena según variante -->
+            </div>
+            <div class="row">
+                <button>Añadir dirección</button>
+                <span id="addChildMsg"></span>
+            </div>
+        </form>
 
-<section class="card" id="updateCard">
-    <h2 style="margin:0">Actualizar (PUT reemplazo total)</h2>
-    <form id="updateForm">
-        <div class="grid2">
-            <input name="id" placeholder="ID" required/>
-            <input name="nombre" placeholder="Nombre (opcional)"/>
-        </div>
-        <div id="updateDynamic"></div>
-        <button type="submit">Actualizar (PUT)</button>
-    </form>
-    <div id="updateMsg" class="muted"></div>
-</section>
+        <hr/>
 
-<section class="card">
-    <h2 style="margin:0">Añadir hijo (POST anidado)</h2>
-    <form id="addChildForm">
-        <div class="grid2">
-            <input name="id" placeholder="ID padre" required/>
-            <span id="addChildLabel" class="muted"></span>
-        </div>
-        <div id="addChildDynamic"></div>
-        <button type="submit">Añadir</button>
-    </form>
-    <div id="addChildMsg" class="muted"></div>
-</section>
+        <form id="delChildForm" class="row">
+            <span class="inline">Eliminar dirección:</span>
+            <input name="personaId" type="number" placeholder="ID persona" />
+            <input name="childId" type="number" placeholder="ID dirección" required />
+            <button>Eliminar</button>
+            <span id="delChildMsg"></span>
+        </form>
+        <div class="small muted">En UNI-B no hace falta el ID de persona para borrar; se oculta automáticamente.</div>
+    </div>
+</div>
 
-<section class="card danger" id="delChildCard">
-    <h2 style="margin:0">Eliminar hijo (DELETE anidado)</h2>
-    <form id="delChildForm" class="row">
-        <input name="personaId" placeholder="ID padre" required/>
-        <input name="childId" placeholder="ID hijo" required/>
-        <button type="submit">Eliminar hijo</button>
-    </form>
-    <div id="delChildMsg" class="muted"></div>
-</section>
-
-<section class="card danger">
-    <h2 style="margin:0">Eliminar padre (DELETE)</h2>
-    <form id="deleteForm" class="row">
-        <input name="id" placeholder="ID" required/>
-        <button type="submit">Eliminar</button>
-    </form>
-    <div id="deleteMsg" class="muted"></div>
-</section>
+<div class="card">
+    <div class="row">
+        <button id="reloadBtn">Recargar listado</button>
+        <span id="loadMsg" class="small muted"></span>
+    </div>
+    <div id="list"></div>
+</div>
 
 <script>
-    /* ---------- estado persistente ---------- */
-    const LS_KEYS = { rel:'demo.rel', variant:'demo.variant', api:'demo.api' };
+    // ===== util =====
+    const esc = s => (s==null?'':String(s))
+      .replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')
+      .replaceAll('"','&quot;').replaceAll("'","&#39;");
+    async function safeFetch(url, opts={}){
+      const o = { headers:{'Content-Type':'application/json'}, ...opts };
+      const res = await fetch(url, o);
+      if(!res.ok){
+        let detail = '';
+        try{ const j = await res.json(); detail = j.detail || j.message || JSON.stringify(j); }catch{}
+        throw new Error(`${res.status} ${res.statusText}${detail? ' — '+detail : ''}`);
+      }
+      if (res.status === 204) return null;
+      return res.json();
+    }
+
+    // ===== state y variantes =====
     const rel = document.getElementById('rel');
     const variant = document.getElementById('variant');
-    const apiBase = document.getElementById('apiBase');
     const listDiv = document.getElementById('list');
 
-    function saveState(){
-      localStorage.setItem(LS_KEYS.rel, rel.value);
-      localStorage.setItem(LS_KEYS.variant, variant.value);
-      localStorage.setItem(LS_KEYS.api, apiBase.value);
-    }
-    function loadState(){
-      const relV = localStorage.getItem(LS_KEYS.rel) || '1-1';
-      rel.value = relV;
-      setVariants(); // construye variant según rel actual
-      const varV = localStorage.getItem(LS_KEYS.variant) || (relV==='1-1' ? '1-1:bi' : '1-N:bi');
-      variant.value = varV;
-      refreshBase(); // pone api por defecto según variant
-      const apiV = localStorage.getItem(LS_KEYS.api);
-      if (apiV) apiBase.value = apiV; // respeta la última manual
-      rebuildDynamicForms();
-    }
+    const BASES = {
+      '1-1:bi':     { personas: 'http://localhost:8081/r11bi/personas' },
+      '1-1:uni':    { personas: 'http://localhost:8081/r11uni/personas' },
+      '1-N:bi':     { personas: 'http://localhost:8081/r1nbi/personas' },
+      '1-N:uni-b':  { personas: 'http://localhost:8081/r1nuni-b/personas', direcciones:'http://localhost:8081/r1nuni-b/direcciones' }
+    };
 
-    /* ---------- opciones ---------- */
     function addOpt(sel, label, val){ const o=document.createElement('option'); o.value=val; o.textContent=label; sel.appendChild(o); }
+
     function setVariants(){
-      variant.innerHTML = '';
-      if(rel.value === '1-1'){
+      variant.innerHTML='';
+      if(rel.value==='1-1'){
         addOpt(variant,'BI (/r11bi/personas)','1-1:bi');
         addOpt(variant,'UNI (/r11uni/personas)','1-1:uni');
-      } else {
+      }else{
         addOpt(variant,'BI (/r1nbi/personas)','1-N:bi');
+        addOpt(variant,'UNI-B (dir → per)','1-N:uni-b');
       }
-    }
-    function refreshBase(){
-      const v = variant.value;
-      if(v==='1-1:bi') apiBase.value = 'http://localhost:8081/r11bi/personas';
-      if(v==='1-1:uni') apiBase.value = 'http://localhost:8081/r11uni/personas';
-      if(v==='1-N:bi') apiBase.value = 'http://localhost:8081/r1nbi/personas';
+      const saved = localStorage.getItem('variant');
+      if(saved && [...variant.options].some(o=>o.value===saved)) variant.value=saved;
+      rebuildDynamicForms();
+      loadList();
     }
 
-    /* ---------- UI dinámico ---------- */
-    const createDyn = document.getElementById('createDynamic');
-    const updateDyn = document.getElementById('updateDynamic');
-    const addChildDyn = document.getElementById('addChildDynamic');
-    const addChildLabel = document.getElementById('addChildLabel');
-    const delChildCard = document.getElementById('delChildCard');
+    function direccionRow(prefix){
+      return `
+        <div class="row addr-row">
+          <input name="${prefix}.calle" placeholder="calle" required />
+          <input name="${prefix}.ciudad" placeholder="ciudad" required />
+          <input name="${prefix}.cp" placeholder="cp" required />
+          <input name="${prefix}.provincia" placeholder="provincia" required />
+          <input name="${prefix}.etiqueta" placeholder="etiqueta (opcional)" />
+        </div>`;
+    }
 
     function rebuildDynamicForms(){
       const v = variant.value;
-      if(v.startsWith('1-1')) {
-        createDyn.innerHTML = dniBlock('create');
-        updateDyn.innerHTML = dniBlock('update');
-        addChildDyn.innerHTML = dniBlock('addChild', true);
-        addChildLabel.textContent = 'Añadir/actualizar DNI del padre';
-        delChildCard.style.display = 'none';
-      } else {
-        createDyn.innerHTML = direccionesBlock('create');
-        updateDyn.innerHTML = direccionesBlock('update');
-        addChildDyn.innerHTML = direccionSingleRow('addChild');
-        addChildLabel.textContent = 'Añadir Dirección al padre';
-        delChildCard.style.display = '';
-        wireAddrList(document.getElementById('createAddrs'), 'create');
-        wireAddrList(document.getElementById('updateAddrs'), 'update');
-      }
-      saveState();
+      // Form de añadir hijo: para todas las variantes pedimos datos de dirección,
+      // pero el endpoint cambia (anidado en BI / plano en UNI-B)
+      document.getElementById('addChildDynamic').innerHTML = direccionRow('addChild');
+
+      // En UNI-B ocultamos el personaId en el form de borrar-hijo, no es necesario
+      const personaIdInp = document.querySelector('#delChildForm [name="personaId"]');
+      personaIdInp.parentElement.style.display = (v==='1-N:uni-b') ? 'none' : '';
+      localStorage.setItem('variant', v);
     }
 
-    function dniBlock(prefix, standalone=false){
-      return `
-        <div class="dni-row">
-          <input name="${prefix}.dni.numero" placeholder="DNI.numero" required />
-          <input name="${prefix}.dni.fechaExpedicion" placeholder="DNI.fechaExpedicion (yyyy-mm-dd)" ${standalone?'':'required'} />
-        </div>
-        <small class="hint">1–1: se envía un único objeto <code>dni</code>.</small>
-      `;
-    }
-    function direccionesBlock(prefix){
-      return `
-        <div>
-          <strong>Direcciones</strong>
-          <small class="hint">Rellena calle, ciudad, cp, provincia. Etiqueta es opcional.</small>
-          <div id="${prefix}Addrs"></div>
-          <div class="row">
-            <button type="button" id="addAddr-${prefix}">+ Dirección</button>
-            <button type="button" id="clearAddr-${prefix}">Vaciar</button>
-          </div>
-        </div>
-      `;
-    }
-    function direccionSingleRow(prefix){
-      return `
-        <div class="addr-row">
-          <input name="${prefix}.etiqueta" placeholder="Etiqueta (opcional)"/>
-          <input name="${prefix}.calle" placeholder="Calle" required/>
-          <input name="${prefix}.ciudad" placeholder="Ciudad" required/>
-          <input name="${prefix}.cp" placeholder="CP" required/>
-          <input name="${prefix}.provincia" placeholder="Provincia" required/>
-        </div>
-      `;
-    }
-    function wireAddrList(container, prefix){
-      const addBtn = document.getElementById(`addAddr-${prefix}`);
-      const clearBtn = document.getElementById(`clearAddr-${prefix}`);
-      const add = () => {
-        const idx = container.querySelectorAll('.addr-row').length;
-        container.insertAdjacentHTML('beforeend', `
-          <div class="addr-row">
-            <input name="${prefix}[${idx}].etiqueta" placeholder="Etiqueta (opcional)"/>
-            <input name="${prefix}[${idx}].calle" placeholder="Calle" required/>
-            <input name="${prefix}[${idx}].ciudad" placeholder="Ciudad" required/>
-            <input name="${prefix}[${idx}].cp" placeholder="CP" required/>
-            <input name="${prefix}[${idx}].provincia" placeholder="Provincia" required/>
-            <button type="button" class="rm">✕</button>
-          </div>`);
-        container.querySelector('.addr-row:last-child .rm').onclick = e => e.currentTarget.parentElement.remove();
-      };
-      addBtn.onclick = add;
-      clearBtn.onclick = () => container.innerHTML = '';
-      add(); // arranca con una fila
-    }
-
-    /* ---------- HTTP util ---------- */
-    async function safeFetch(url, opts = {}){
-      const res = await fetch(url, { ...opts, headers: { 'Content-Type':'application/json', ...(opts.headers||{}) }});
-      const raw = await res.text().catch(()=> '');
-      let data = null; try{ data = raw ? JSON.parse(raw) : null; }catch{}
-      if(!res.ok){ const msg = (data&&(data.detail||data.message)) || raw || res.statusText; throw new Error(`HTTP ${res.status} — ${msg}`); }
-      return data ?? raw;
-    }
-    function esc(s){
-      const map = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' };
-      return (s??'').toString().replace(/[&<>"']/g, m => map[m]);
-    }
-
-    /* ---------- Listado ---------- */
+    // ===== Listado =====
     async function loadList(){
-      listDiv.textContent = 'Cargando...';
-      try{
-        const data = await safeFetch(apiBase.value);
-        renderList(data);
-      }catch(e){ listDiv.innerHTML = `<div class="card danger">Error: ${e.message}</div>`; }
-    }
-    document.getElementById('reload').onclick = () => { saveState(); loadList(); };
-
-    function renderList(items){
-      if(!Array.isArray(items)||items.length===0){ listDiv.innerHTML = '<div class="muted">Sin datos.</div>'; return; }
       const v = variant.value;
-      listDiv.innerHTML = items.map(p=>{
-        let hijosHtml = '';
-        if(v.startsWith('1-1')){
-          const d = p.dni || null;
-          hijosHtml = d ? `<li>DNI #${d.id??'-'} — ${esc(d.numero??'-')}</li>` : '<li class="muted">Sin DNI</li>';
-        } else {
-          hijosHtml = (p.direcciones||[]).map(d=>`<li>#${d.id??'-'} — ${esc(d.calle)}, ${esc(d.ciudad)} ${esc(d.cp)} (${esc(d.provincia)}) ${d.etiqueta? '— '+esc(d.etiqueta):''}</li>`).join('') || '<li class="muted">Sin direcciones</li>';
+      const personasUrl = BASES[v].personas;
+      document.getElementById('loadMsg').textContent = 'Cargando...';
+      listDiv.textContent = '';
+      try{
+        const personas = await safeFetch(personasUrl);
+        if(v === '1-N:uni-b'){
+          // Para cada persona, pedimos sus direcciones por query
+          const personasConDirs = await Promise.all(personas.map(async p=>{
+            const dirs = await safeFetch(`${BASES[v].direcciones}?personaId=${encodeURIComponent(p.id)}`);
+            return { ...p, __dirs: dirs };
+          }));
+          renderListUniB(personasConDirs);
+        }else if(v === '1-N:bi'){
+          renderList1N_BI(personas);
+        }else{
+          renderListSimple(personas); // 1-1 casos
         }
+        document.getElementById('loadMsg').textContent = '';
+      }catch(e){
+        listDiv.innerHTML = `<div class="danger">Error: ${esc(e.message)}</div>`;
+        document.getElementById('loadMsg').textContent = '';
+      }
+    }
+
+    function renderListSimple(items){
+      if(!Array.isArray(items)||items.length===0){ listDiv.innerHTML='<div class="muted">Sin datos.</div>'; return; }
+      listDiv.innerHTML = items.map(p=>{
         return `<div class="card">
-          <div><strong>Persona #${p.id}</strong> — ${esc(p.nombre||'-')}</div>
+          <div><strong>Persona #${esc(p.id)}</strong> — ${esc(p.nombre||'-')}</div>
+          <pre>${esc(JSON.stringify(p,null,2))}</pre>
+        </div>`;
+      }).join('');
+    }
+
+    function renderList1N_BI(items){
+      if(!Array.isArray(items)||items.length===0){ listDiv.innerHTML='<div class="muted">Sin datos.</div>'; return; }
+      listDiv.innerHTML = items.map(p=>{
+        const hijos = (p.direcciones||[]);
+        const hijosHtml = hijos.length? hijos.map(d=>`<li>#${esc(d.id)} — ${esc(d.calle)}, ${esc(d.ciudad)} ${esc(d.cp)} (${esc(d.provincia)}) ${d.etiqueta? '— '+esc(d.etiqueta):''}</li>`).join('')
+          : '<li class="muted">Sin direcciones</li>';
+        return `<div class="card">
+          <div><strong>Persona #${esc(p.id)}</strong> — ${esc(p.nombre||'-')}</div>
           <ul>${hijosHtml}</ul>
           <pre>${esc(JSON.stringify(p,null,2))}</pre>
         </div>`;
       }).join('');
     }
 
-    /* ---------- Crear ---------- */
+    function renderListUniB(items){
+      if(!Array.isArray(items)||items.length===0){ listDiv.innerHTML='<div class="muted">Sin datos.</div>'; return; }
+      listDiv.innerHTML = items.map(p=>{
+        const hijos = (p.__dirs||[]);
+        const hijosHtml = hijos.length? hijos.map(d=>`<li>#${esc(d.id)} — ${esc(d.calle)}, ${esc(d.ciudad)} ${esc(d.cp)} (${esc(d.provincia)}) ${d.etiqueta? '— '+esc(d.etiqueta):''}</li>`).join('')
+          : '<li class="muted">Sin direcciones</li>';
+        return `<div class="card">
+          <div><strong>Persona #${esc(p.id)}</strong> — ${esc(p.nombre||'-')}</div>
+          <ul>${hijosHtml}</ul>
+          <pre>${esc(JSON.stringify({id:p.id, nombre:p.nombre, direcciones:p.__dirs},null,2))}</pre>
+        </div>`;
+      }).join('');
+    }
+
+    // ===== Personas – CRUD =====
     document.getElementById('createForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
-      const msg = document.getElementById('createMsg'); msg.textContent='Creando...';
+      const v = variant.value;
+      const base = BASES[v].personas;
+      const msg = document.getElementById('createMsg');
+      msg.textContent='';
       try{
-        const body = buildCreateBody();
-        const d = await safeFetch(apiBase.value, { method:'POST', body: JSON.stringify(body) });
-        msg.innerHTML = `<span class="ok card">Creado ID ${d.id}</span>`;
-        // Resetea solo el formulario de crear, NO los selectores
-        ev.target.reset();
-        // Reponer fila de direcciones si estamos en 1-N BI
-        if (variant.value === '1-N:bi') {
-          const c = document.getElementById('createAddrs'); c.innerHTML=''; wireAddrList(c,'create');
-        }
-        loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
+        const nombre = new FormData(ev.target).get('nombre');
+        await safeFetch(base, { method:'POST', body:JSON.stringify({ nombre }) });
+        msg.innerHTML = `<span class="ok">Creado</span>`;
+        ev.target.reset(); loadList();
+      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
     });
 
-    function buildCreateBody(){
-      const v = variant.value;
-      const nombre = document.querySelector('#createForm [name="nombre"]').value || null;
-      if(v.startsWith('1-1')){
-        const numero = document.querySelector('[name="create.dni.numero"]').value.trim();
-        const fecha = document.querySelector('[name="create.dni.fechaExpedicion"]').value.trim() || null;
-        return { nombre, dni: { numero, fechaExpedicion: fecha } };
-      } else {
-        const rows = [...document.querySelectorAll('#createAddrs .addr-row')];
-        const direcciones = rows.map(r=>{
-          const q = n => r.querySelector(`[name^="create"][name$=".${n}"]`).value.trim();
-          const etiqueta = q('etiqueta'); const calle=q('calle'); const ciudad=q('ciudad'); const cp=q('cp'); const provincia=q('provincia');
-          if(!calle||!ciudad||!cp||!provincia) throw new Error('Calle/ciudad/cp/provincia obligatorios');
-          return { etiqueta: etiqueta||null, calle, ciudad, cp, provincia };
-        });
-        return { nombre, direcciones };
-      }
-    }
-
-    /* ---------- Update (PUT) ---------- */
     document.getElementById('updateForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
-      const msg = document.getElementById('updateMsg'); msg.textContent='Actualizando...';
-      const id = new FormData(ev.target).get('id');
-      try{
-        const body = buildUpdateBody();
-        const d = await safeFetch(`${apiBase.value}/${id}`, { method:'PUT', body: JSON.stringify(body) });
-        msg.innerHTML = `<span class="ok card">Actualizado ID ${d.id}</span>`;
-        ev.target.reset();
-        if (variant.value === '1-N:bi') {
-          const c = document.getElementById('updateAddrs'); c.innerHTML=''; wireAddrList(c,'update');
-        }
-        loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
-    });
-    function buildUpdateBody(){
       const v = variant.value;
-      const nombre = document.querySelector('#updateForm [name="nombre"]').value || null;
-      if(v.startsWith('1-1')){
-        const numero = document.querySelector('[name="update.dni.numero"]').value.trim();
-        const fecha = document.querySelector('[name="update.dni.fechaExpedicion"]').value.trim() || null;
-        return { nombre, dni: { numero, fechaExpedicion: fecha } };
-      } else {
-        const rows = [...document.querySelectorAll('#updateAddrs .addr-row')];
-        const direcciones = rows.map(r=>{
-          const q = n => r.querySelector(`[name^="update"][name$=".${n}"]`).value.trim();
-          const etiqueta = q('etiqueta'); const calle=q('calle'); const ciudad=q('ciudad'); const cp=q('cp'); const provincia=q('provincia');
-          if(!calle||!ciudad||!cp||!provincia) throw new Error('Calle/ciudad/cp/provincia obligatorios');
-          return { etiqueta: etiqueta||null, calle, ciudad, cp, provincia };
-        });
-        return { nombre, direcciones };
-      }
-    }
-
-    /* ---------- Añadir hijo (POST anidado) ---------- */
-    document.getElementById('addChildForm').addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
-      const msg = document.getElementById('addChildMsg'); msg.textContent='Añadiendo...';
-      const id = new FormData(ev.target).get('id');
+      const base = BASES[v].personas;
+      const msg = document.getElementById('updateMsg');
+      msg.textContent='';
       try{
-        const v = variant.value;
-        if(v.startsWith('1-1')){
-          throw new Error('Para 1–1 usa POST/PUT del padre con el objeto DNI.');
-        }else{
-          const r = document.querySelector('#addChildDynamic .addr-row');
-          const get = n => r.querySelector(`[name="addChild.${n}"]`).value.trim();
-          const body = { etiqueta: (get('etiqueta')||null),
-                         calle:get('calle'), ciudad:get('ciudad'), cp:get('cp'), provincia:get('provincia') };
-          await safeFetch(`${apiBase.value}/${id}/direcciones`, { method: 'POST', body: JSON.stringify(body) });
-          msg.innerHTML = `<span class="ok card">Añadido</span>`;
-          ev.target.reset(); loadList();
-        }
-      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
-    });
-
-    /* ---------- Delete hijo/persona ---------- */
-    document.getElementById('delChildForm').addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
-      const msg = document.getElementById('delChildMsg'); msg.textContent='Eliminando...';
-      const fd = new FormData(ev.target);
-      try{
-        await safeFetch(`${apiBase.value}/${fd.get('personaId')}/direcciones/${fd.get('childId')}`, { method:'DELETE' });
-        msg.innerHTML = `<span class="ok card">Eliminado</span>`;
+        const fd = new FormData(ev.target);
+        const id = fd.get('id');
+        const nombre = fd.get('nombre');
+        await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify({ nombre }) });
+        msg.innerHTML = `<span class="ok">Actualizado</span>`;
         ev.target.reset(); loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
+      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
     });
+
     document.getElementById('deleteForm').addEventListener('submit', async (ev)=>{
       ev.preventDefault();
-      const msg = document.getElementById('deleteMsg'); msg.textContent='Eliminando...';
-      const id = new FormData(ev.target).get('id');
+      const v = variant.value;
+      const base = BASES[v].personas;
+      const msg = document.getElementById('deleteMsg');
+      msg.textContent='';
       try{
-        await safeFetch(`${apiBase.value}/${id}`, { method:'DELETE' });
-        msg.innerHTML = `<span class="ok card">Eliminado</span>`;
+        const id = new FormData(ev.target).get('id');
+        await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'DELETE' });
+        msg.innerHTML = `<span class="ok">Eliminado</span>`;
         ev.target.reset(); loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger card">Error: ${e.message}</span>`; }
+      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
     });
 
-    /* ---------- eventos de selects ---------- */
-    rel.addEventListener('change', () => { setVariants(); refreshBase(); rebuildDynamicForms(); saveState(); });
-    variant.addEventListener('change', () => { refreshBase(); rebuildDynamicForms(); saveState(); });
-    apiBase.addEventListener('change', saveState);
+    // ===== Direcciones – Añadir / Eliminar =====
+    document.getElementById('addChildForm').addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const v = variant.value;
+      const msg = document.getElementById('addChildMsg'); msg.textContent='';
+      try{
+        const fd = new FormData(ev.target);
+        const personaId = fd.get('id');
 
-    /* init */
-    loadState(); // restaura estado, construye UI y no toca tu selección al operar
-    loadList();
+        // recoger campos de dirección
+        const r = document.querySelector('#addChildDynamic');
+        const get = (n) => r.querySelector(`[name="addChild.${n}"]`).value.trim();
+        const body = {
+          calle:get('calle'), ciudad:get('ciudad'), cp:get('cp'), provincia:get('provincia')
+        };
+        const etiqueta = get('etiqueta'); if(etiqueta) body.etiqueta = etiqueta;
+
+        if(v === '1-N:bi'){
+          // POST anidado: /r1nbi/personas/{id}/direcciones
+          const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones`;
+          await safeFetch(url,{ method:'POST', body:JSON.stringify(body) });
+        }else if(v === '1-N:uni-b'){
+          // POST plano: /r1nuni-b/direcciones  con { persona:{id}, ... }
+          const url = `${BASES[v].direcciones}`;
+          await safeFetch(url,{ method:'POST', body:JSON.stringify({ persona:{ id:Number(personaId) }, ...body }) });
+        }else{
+          throw new Error('Añadir dirección solo aplica a 1–N');
+        }
+
+        msg.innerHTML = `<span class="ok">Añadida</span>`;
+        ev.target.reset(); loadList();
+      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+    });
+
+    document.getElementById('delChildForm').addEventListener('submit', async (ev)=>{
+      ev.preventDefault();
+      const v = variant.value;
+      const msg = document.getElementById('delChildMsg'); msg.textContent='';
+      try{
+        const fd = new FormData(ev.target);
+        const childId = fd.get('childId');
+
+        if(v === '1-N:bi'){
+          const personaId = fd.get('personaId');
+          const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones/${encodeURIComponent(childId)}`;
+          await safeFetch(url,{ method:'DELETE' });
+        }else if(v === '1-N:uni-b'){
+          const url = `${BASES[v].direcciones}/${encodeURIComponent(childId)}`;
+          await safeFetch(url,{ method:'DELETE' });
+        }else{
+          throw new Error('Eliminar dirección solo aplica a 1–N');
+        }
+
+        msg.innerHTML = `<span class="ok">Eliminada</span>`;
+        ev.target.reset(); loadList();
+      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+    });
+
+    // ===== eventos =====
+    rel.addEventListener('change', setVariants);
+    variant.addEventListener('change', ()=>{ rebuildDynamicForms(); loadList(); });
+    document.getElementById('reloadBtn').addEventListener('click', loadList);
+
+    // init
+    (function init(){
+      const savedRel = localStorage.getItem('rel'); if(savedRel) rel.value=savedRel;
+      setVariants();
+      rel.addEventListener('change', ()=>localStorage.setItem('rel', rel.value));
+    })();
 </script>
 </body>
 </html>
