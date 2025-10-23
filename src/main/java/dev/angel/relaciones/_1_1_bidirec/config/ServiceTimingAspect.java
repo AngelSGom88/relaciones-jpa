@@ -7,24 +7,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-@Aspect
-@Component
+@Aspect @Component
 public class ServiceTimingAspect {
-
     private static final Logger log = LoggerFactory.getLogger(ServiceTimingAspect.class);
+    private static final long WARN_THRESHOLD_MS = 200L;
 
-    // Aplica a todos los métodos de cualquier clase bajo ...service...
-    @Around("execution(* dev.angel.relaciones..service..*(..))")
-    public Object time(ProceedingJoinPoint pjp) throws Throwable {
+    // 👇 limita el pointcut al paquete del caso
+    @Around("execution(* dev.angel.relaciones._1_1_bidirec..service..*(..))")
+    public Object medir(ProceedingJoinPoint pjp) throws Throwable {
         long t0 = System.nanoTime();
-        try {
-            return pjp.proceed();
-        } finally {
-            long ms = (System.nanoTime() - t0) / 1_000_000;
-            log.info("⏱ {}.{} -> {} ms",
-                    pjp.getSignature().getDeclaringType().getSimpleName(),
-                    pjp.getSignature().getName(),
-                    ms);
+        try { return pjp.proceed(); }
+        finally {
+            long ms = (System.nanoTime() - t0) / 1_000_000L;
+            String sig = pjp.getSignature().toShortString();
+            if (ms >= WARN_THRESHOLD_MS) log.warn("SERVICE SLOW [{}] {} ms", sig, ms);
+            else                         log.info("SERVICE [{}] {} ms", sig, ms);
         }
     }
 }
