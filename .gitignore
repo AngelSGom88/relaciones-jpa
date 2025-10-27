@@ -7,7 +7,7 @@ target/
 hs_err_pid*
 
 # Logs de la app
-logs/
+
 *.log
 *.log.gz
 
