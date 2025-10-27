@@ -8,7 +8,6 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Persona_Nm_Bi {
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

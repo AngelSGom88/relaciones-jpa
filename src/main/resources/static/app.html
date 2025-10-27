@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
         :root { --gap: 10px; --muted:#6b7280; --ok:#16a34a; --err:#dc2626; }
-        body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin:20px; }
+        body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial; margin:20px; }
         h1 { margin:0 0 8px; }
         .row { display:flex; gap:var(--gap); flex-wrap:wrap; align-items:center; }
         label { font-size:14px; }
         input, select, button, textarea { padding:8px; font-size:14px; }
-        input[type="number"]{ width:90px; }
+        input[type="number"]{ width:110px; }
         .card { border:1px solid #e5e7eb; border-radius:10px; padding:12px; margin:10px 0; background:#fff; }
         .muted { color:var(--muted); }
         .ok { color:#fff; background:var(--ok); padding:2px 6px; border-radius:6px; }
@@ -19,8 +19,6 @@
         pre { background:#f8fafc; border:1px solid #e5e7eb; padding:8px; border-radius:8px; overflow:auto; }
         .grid { display:grid; gap:var(--gap); grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); }
         .section-title { margin-top:20px; }
-        .inline { display:inline-block; }
-        .addr-row input { margin-right:6px; }
         .small { font-size:12px; }
     </style>
 </head>
@@ -32,7 +30,8 @@
         <label>Relación:</label>
         <select id="rel">
             <option value="1-1">1–1</option>
-            <option value="1-N" selected>1–N</option>
+            <option value="1-N">1–N</option>
+            <option value="N-M" selected>N–M</option>
         </select>
     </div>
     <div>
@@ -42,53 +41,8 @@
     <div class="small muted">Los endpoints se fijan automáticamente según la variante.</div>
 </div>
 
-<div class="grid">
-    <div class="card">
-        <h3 class="section-title">Personas — CRUD</h3>
-        <form id="createForm" class="row">
-            <input name="nombre" placeholder="nombre (crear)" required />
-            <button>Crear</button>
-            <span id="createMsg"></span>
-        </form>
-        <form id="updateForm" class="row">
-            <input name="id" type="number" placeholder="id (update)" required />
-            <input name="nombre" placeholder="nuevo nombre" />
-            <button>Actualizar</button>
-            <span id="updateMsg"></span>
-        </form>
-        <form id="deleteForm" class="row">
-            <input name="id" type="number" placeholder="id (delete)" required />
-            <button>Eliminar</button>
-            <span id="deleteMsg"></span>
-        </form>
-    </div>
-
-    <div class="card">
-        <h3 class="section-title">Direcciones — Añadir / Eliminar</h3>
-        <form id="addChildForm">
-            <div class="row">
-                <input name="id" type="number" placeholder="ID persona (padre)" required />
-            </div>
-            <div id="addChildDynamic" class="addr-row">
-                <!-- Se rellena según variante -->
-            </div>
-            <div class="row">
-                <button>Añadir dirección</button>
-                <span id="addChildMsg"></span>
-            </div>
-        </form>
-
-        <hr/>
-
-        <form id="delChildForm" class="row">
-            <span class="inline">Eliminar dirección:</span>
-            <input name="personaId" type="number" placeholder="ID persona" />
-            <input name="childId" type="number" placeholder="ID dirección" required />
-            <button>Eliminar</button>
-            <span id="delChildMsg"></span>
-        </form>
-        <div class="small muted">En UNI-B no hace falta el ID de persona para borrar; se oculta automáticamente.</div>
-    </div>
+<div class="grid" id="formsGrid">
+    <!-- Se rellenará dinámicamente según la variante -->
 </div>
 
 <div class="card">
@@ -120,13 +74,17 @@
     const rel = document.getElementById('rel');
     const variant = document.getElementById('variant');
     const listDiv = document.getElementById('list');
+    const formsGrid = document.getElementById('formsGrid');
 
     const BASES = {
-      '1-1:bi':     { personas: 'http://localhost:8081/r11bi/personas' },
-      '1-1:uni':    { personas: 'http://localhost:8081/r11uni/personas' },
-      '1-N:bi':     { personas: 'http://localhost:8081/r1nbi/personas' },
-      '1-N:uni-a':  { personas: 'http://localhost:8081/r1nuni-a/personas' },
-      '1-N:uni-b':  { personas: 'http://localhost:8081/r1nuni-b/personas', direcciones:'http://localhost:8081/r1nuni-b/direcciones' }
+      '1-1:bi':      { personas: 'http://localhost:8081/r11bi/personas' },
+      '1-1:uni':     { personas: 'http://localhost:8081/r11uni/personas' },
+      '1-N:bi':      { personas: 'http://localhost:8081/r1nbi/personas' },
+      '1-N:uni-a':   { personas: 'http://localhost:8081/r1nuni-a/personas' },
+      '1-N:uni-b':   { personas: 'http://localhost:8081/r1nuni-b/personas',
+                       direcciones:'http://localhost:8081/r1nuni-b/direcciones' },
+      'N-M:bi':      { personas: 'http://localhost:8081/rnmbi/personas',
+                       proyectos:'http://localhost:8081/rnmbi/proyectos' }
     };
 
     function addOpt(sel, label, val){ const o=document.createElement('option'); o.value=val; o.textContent=label; sel.appendChild(o); }
@@ -136,57 +94,145 @@
       if(rel.value==='1-1'){
         addOpt(variant,'BI (/r11bi/personas)','1-1:bi');
         addOpt(variant,'UNI (/r11uni/personas)','1-1:uni');
-      }else{
+      }else if(rel.value==='1-N'){
         addOpt(variant,'BI (/r1nbi/personas)','1-N:bi');
         addOpt(variant,'UNI-A (per → dir)','1-N:uni-a');
         addOpt(variant,'UNI-B (dir → per)','1-N:uni-b');
+      }else{
+        addOpt(variant,'BI (N–M: personas y proyectos)','N-M:bi');
       }
       const saved = localStorage.getItem('variant');
       if(saved && [...variant.options].some(o=>o.value===saved)) variant.value=saved;
-      rebuildDynamicForms();
+      rebuildForms();
       loadList();
     }
 
-    function direccionRow(prefix){
+    // ===== UI forms por variante =====
+    function formPersonasCRUD(){
       return `
-        <div class="row addr-row">
-          <input name="${prefix}.calle" placeholder="calle" required />
-          <input name="${prefix}.ciudad" placeholder="ciudad" required />
-          <input name="${prefix}.cp" placeholder="cp" required />
-          <input name="${prefix}.provincia" placeholder="provincia" required />
-          <input name="${prefix}.etiqueta" placeholder="etiqueta (opcional)" />
-        </div>`;
+      <div class="card">
+        <h3 class="section-title">Personas — CRUD</h3>
+        <form id="createPersonaForm" class="row">
+          <input name="nombre" placeholder="nombre (crear)" required />
+          <button>Crear</button><span id="createPersonaMsg"></span>
+        </form>
+        <form id="updatePersonaForm" class="row">
+          <input name="id" type="number" placeholder="id (update)" required />
+          <input name="nombre" placeholder="nuevo nombre" />
+          <button>Actualizar</button><span id="updatePersonaMsg"></span>
+        </form>
+        <form id="deletePersonaForm" class="row">
+          <input name="id" type="number" placeholder="id (delete)" required />
+          <button>Eliminar</button><span id="deletePersonaMsg"></span>
+        </form>
+      </div>`;
     }
 
-    function rebuildDynamicForms(){
-      const v = variant.value;
-      document.getElementById('addChildDynamic').innerHTML = direccionRow('addChild');
+    function formDirecciones(){
+      return `
+      <div class="card">
+        <h3 class="section-title">Direcciones — Añadir / Eliminar</h3>
+        <form id="addChildForm">
+          <div class="row"><input name="id" type="number" placeholder="ID persona (padre)" required /></div>
+          <div id="addChildDynamic" class="row">
+            <input name="addChild.calle" placeholder="calle" required />
+            <input name="addChild.ciudad" placeholder="ciudad" required />
+            <input name="addChild.cp" placeholder="cp" required />
+            <input name="addChild.provincia" placeholder="provincia" required />
+            <input name="addChild.etiqueta" placeholder="etiqueta (opcional)" />
+          </div>
+          <div class="row"><button>Añadir dirección</button><span id="addChildMsg"></span></div>
+        </form>
+        <hr/>
+        <form id="delChildForm" class="row">
+          <span>Eliminar dirección:</span>
+          <input name="personaId" type="number" placeholder="ID persona" />
+          <input name="childId" type="number" placeholder="ID dirección" required />
+          <button>Eliminar</button><span id="delChildMsg"></span>
+        </form>
+        <div class="small muted">En UNI-B no hace falta el ID de persona para borrar; se oculta automáticamente.</div>
+      </div>`;
+    }
 
-      // En UNI-B ocultamos el personaId en el form de borrar-hijo, no es necesario
-      const personaIdInp = document.querySelector('#delChildForm [name="personaId"]');
-      personaIdInp.parentElement.style.display = (v==='1-N:uni-b') ? 'none' : '';
+    function formProyectosCRUD(){
+      return `
+      <div class="card">
+        <h3 class="section-title">Proyectos — CRUD</h3>
+        <form id="createProyectoForm" class="row">
+          <input name="nombre" placeholder="nombre (crear)" required />
+          <button>Crear</button><span id="createProyectoMsg"></span>
+        </form>
+        <form id="updateProyectoForm" class="row">
+          <input name="id" type="number" placeholder="id (update)" required />
+          <input name="nombre" placeholder="nuevo nombre" />
+          <button>Actualizar</button><span id="updateProyectoMsg"></span>
+        </form>
+        <form id="deleteProyectoForm" class="row">
+          <input name="id" type="number" placeholder="id (delete)" required />
+          <button>Eliminar</button><span id="deleteProyectoMsg"></span>
+        </form>
+      </div>`;
+    }
+
+    function formNmVinculos(){
+      return `
+      <div class="card">
+        <h3 class="section-title">Vínculos Persona ↔ Proyecto</h3>
+        <form id="vincularForm" class="row">
+          <input name="personaId" type="number" placeholder="ID persona" required />
+          <input name="proyectoId" type="number" placeholder="ID proyecto" required />
+          <button>Vincular</button><span id="vincularMsg"></span>
+        </form>
+        <form id="desvincularForm" class="row">
+          <input name="personaId" type="number" placeholder="ID persona" required />
+          <input name="proyectoId" type="number" placeholder="ID proyecto" required />
+          <button>Desvincular</button><span id="desvincularMsg"></span>
+        </form>
+        <div class="small muted">Usa los IDs existentes; si el vínculo ya existe, dará 409.</div>
+      </div>`;
+    }
+
+    function rebuildForms(){
+      const v = variant.value;
+      formsGrid.innerHTML = '';
+      if(v==='1-1:bi' || v==='1-1:uni'){
+        formsGrid.innerHTML = formPersonasCRUD();
+        bindPersonasCrud();
+      } else if (v==='1-N:bi' || v==='1-N:uni-a' || v==='1-N:uni-b'){
+        formsGrid.innerHTML = formPersonasCRUD() + formDirecciones();
+        bindPersonasCrud(); bindDireccionesForms();
+        // ocultar personaId en borrar hijo si UNI-B
+        const personaIdInp = document.querySelector('#delChildForm [name="personaId"]');
+        if (personaIdInp) personaIdInp.parentElement.style.display = (v==='1-N:uni-b') ? 'none' : '';
+      } else if (v==='N-M:bi'){
+        formsGrid.innerHTML = formPersonasCRUD() + formProyectosCRUD() + formNmVinculos();
+        bindPersonasCrud(); bindProyectosCrud(); bindNmVinculos();
+      }
       localStorage.setItem('variant', v);
     }
 
     // ===== Listado =====
     async function loadList(){
       const v = variant.value;
-      const personasUrl = BASES[v].personas;
       document.getElementById('loadMsg').textContent = 'Cargando...';
       listDiv.textContent = '';
       try{
-        const personas = await safeFetch(personasUrl);
-        if(v === '1-N:uni-b'){
-          // Para cada persona, pedimos sus direcciones por query separado
+        if(v==='N-M:bi'){
+          const personas = await safeFetch(BASES[v].personas);
+          renderListNm(personas);
+        } else if(v === '1-N:uni-b'){
+          const personas = await safeFetch(BASES[v].personas);
           const personasConDirs = await Promise.all(personas.map(async p=>{
             const dirs = await safeFetch(`${BASES[v].direcciones}?personaId=${encodeURIComponent(p.id)}`);
             return { ...p, __dirs: dirs };
           }));
           renderListUniB(personasConDirs);
-        }else if(v === '1-N:bi' || v === '1-N:uni-a'){
-          renderList1N_WithEmbeddedDirs(personas); // BI y UNI-A llevan direcciones embebidas
-        }else{
-          renderListSimple(personas); // 1–1 casos
+        } else if(v === '1-N:bi' || v === '1-N:uni-a'){
+          const personas = await safeFetch(BASES[v].personas);
+          renderList1N_WithEmbeddedDirs(personas);
+        } else {
+          const personas = await safeFetch(BASES[v].personas);
+          renderListSimple(personas);
         }
         document.getElementById('loadMsg').textContent = '';
       }catch(e){
@@ -233,112 +279,186 @@
       }).join('');
     }
 
-    // ===== Personas – CRUD =====
-    document.getElementById('createForm').addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
+    function renderListNm(personas){
+      if(!Array.isArray(personas)||personas.length===0){ listDiv.innerHTML='<div class="muted">Sin datos.</div>'; return; }
+      listDiv.innerHTML = personas.map(p=>{
+        const pros = Array.isArray(p.proyectos) ? p.proyectos : [];
+        const prosHtml = pros.length
+          ? pros.map(pr => `<li>#${esc(pr.id)} — ${esc(pr.nombre||'-')}</li>`).join('')
+          : '<li class="muted">Sin proyectos</li>';
+        return `<div class="card">
+          <div><strong>Persona #${esc(p.id)}</strong> — ${esc(p.nombre||'-')}</div>
+          <div class="small muted">Proyectos vinculados:</div>
+          <ul>${prosHtml}</ul>
+          <pre>${esc(JSON.stringify(p,null,2))}</pre>
+        </div>`;
+      }).join('');
+    }
+
+    // ===== Binds: Personas CRUD =====
+    function bindPersonasCrud(){
+      const v = variant.value, base = BASES[v].personas;
+
+      document.getElementById('createPersonaForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('createPersonaMsg'); msg.textContent='';
+        try{
+          const nombre = new FormData(ev.target).get('nombre');
+          await safeFetch(base, { method:'POST', body:JSON.stringify({ nombre }) });
+          msg.innerHTML = `<span class="ok">Creado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+
+      document.getElementById('updatePersonaForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('updatePersonaMsg'); msg.textContent='';
+        try{
+          const fd = new FormData(ev.target);
+          const id = fd.get('id'); const nombre = fd.get('nombre');
+          await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify({ nombre }) });
+          msg.innerHTML = `<span class="ok">Actualizado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+
+      document.getElementById('deletePersonaForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('deletePersonaMsg'); msg.textContent='';
+        try{
+          const id = new FormData(ev.target).get('id');
+          await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'DELETE' });
+          msg.innerHTML = `<span class="ok">Eliminado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+    }
+
+    // ===== Binds: Direcciones (1-N) =====
+    function bindDireccionesForms(){
       const v = variant.value;
-      const base = BASES[v].personas;
-      const msg = document.getElementById('createMsg');
-      msg.textContent='';
-      try{
-        const nombre = new FormData(ev.target).get('nombre');
-        await safeFetch(base, { method:'POST', body:JSON.stringify({ nombre }) });
-        msg.innerHTML = `<span class="ok">Creado</span>`;
-        ev.target.reset(); loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
-    });
 
-    document.getElementById('updateForm').addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
-      const v = variant.value;
-      const base = BASES[v].personas;
-      const msg = document.getElementById('updateMsg');
-      msg.textContent='';
-      try{
-        const fd = new FormData(ev.target);
-        const id = fd.get('id');
-        const nombre = fd.get('nombre');
-        await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify({ nombre }) });
-        msg.innerHTML = `<span class="ok">Actualizado</span>`;
-        ev.target.reset(); loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
-    });
+      document.getElementById('addChildForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('addChildMsg'); msg.textContent='';
+        try{
+          const fd = new FormData(ev.target);
+          const personaId = fd.get('id');
 
-    document.getElementById('deleteForm').addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
-      const v = variant.value;
-      const base = BASES[v].personas;
-      const msg = document.getElementById('deleteMsg');
-      msg.textContent='';
-      try{
-        const id = new FormData(ev.target).get('id');
-        await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'DELETE' });
-        msg.innerHTML = `<span class="ok">Eliminado</span>`;
-        ev.target.reset(); loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
-    });
+          const get = (n) => fd.get(`addChild.${n}`)?.toString().trim();
+          const body = { calle:get('calle'), ciudad:get('ciudad'), cp:get('cp'), provincia:get('provincia') };
+          const etiqueta = get('etiqueta'); if(etiqueta) body.etiqueta = etiqueta;
 
-    // ===== Direcciones – Añadir / Eliminar =====
-    document.getElementById('addChildForm').addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
-      const v = variant.value;
-      const msg = document.getElementById('addChildMsg'); msg.textContent='';
-      try{
-        const fd = new FormData(ev.target);
-        const personaId = fd.get('id');
+          if(v === '1-N:bi' || v === '1-N:uni-a'){
+            const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones`;
+            await safeFetch(url,{ method:'POST', body:JSON.stringify(body) });
+          }else if(v === '1-N:uni-b'){
+            const url = `${BASES[v].direcciones}`;
+            await safeFetch(url,{ method:'POST', body:JSON.stringify({ persona:{ id:Number(personaId) }, ...body }) });
+          }
 
-        // recoger campos de dirección
-        const r = document.querySelector('#addChildDynamic');
-        const get = (n) => r.querySelector(`[name="addChild.${n}"]`).value.trim();
-        const body = {
-          calle:get('calle'), ciudad:get('ciudad'), cp:get('cp'), provincia:get('provincia')
-        };
-        const etiqueta = get('etiqueta'); if(etiqueta) body.etiqueta = etiqueta;
+          msg.innerHTML = `<span class="ok">Añadida</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
 
-        if(v === '1-N:bi' || v === '1-N:uni-a'){
-          // POST anidado: /personas/{id}/direcciones
-          const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones`;
-          await safeFetch(url,{ method:'POST', body:JSON.stringify(body) });
-        }else if(v === '1-N:uni-b'){
-          // POST plano: /r1nuni-b/direcciones  con { persona:{id}, ... }
-          const url = `${BASES[v].direcciones}`;
-          await safeFetch(url,{ method:'POST', body:JSON.stringify({ persona:{ id:Number(personaId) }, ...body }) });
-        }else{
-          throw new Error('Añadir dirección solo aplica a 1–N');
-        }
+      document.getElementById('delChildForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('delChildMsg'); msg.textContent='';
+        try{
+          const fd = new FormData(ev.target);
+          const childId = fd.get('childId');
 
-        msg.innerHTML = `<span class="ok">Añadida</span>`;
-        ev.target.reset(); loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
-    });
+          if(v === '1-N:bi' || v === '1-N:uni-a'){
+            const personaId = fd.get('personaId');
+            const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones/${encodeURIComponent(childId)}`;
+            await safeFetch(url,{ method:'DELETE' });
+          }else if(v === '1-N:uni-b'){
+            const url = `${BASES[v].direcciones}/${encodeURIComponent(childId)}`;
+            await safeFetch(url,{ method:'DELETE' });
+          }
 
-    document.getElementById('delChildForm').addEventListener('submit', async (ev)=>{
-      ev.preventDefault();
-      const v = variant.value;
-      const msg = document.getElementById('delChildMsg'); msg.textContent='';
-      try{
-        const fd = new FormData(ev.target);
-        const childId = fd.get('childId');
+          msg.innerHTML = `<span class="ok">Eliminada</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+    }
 
-        if(v === '1-N:bi' || v === '1-N:uni-a'){
+    // ===== Binds: Proyectos CRUD (N–M) =====
+    function bindProyectosCrud(){
+      const base = BASES['N-M:bi'].proyectos;
+
+      document.getElementById('createProyectoForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('createProyectoMsg'); msg.textContent='';
+        try{
+          const nombre = new FormData(ev.target).get('nombre');
+          await safeFetch(base, { method:'POST', body:JSON.stringify({ nombre }) });
+          msg.innerHTML = `<span class="ok">Creado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+
+      document.getElementById('updateProyectoForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('updateProyectoMsg'); msg.textContent='';
+        try{
+          const fd = new FormData(ev.target);
+          const id = fd.get('id'); const nombre = fd.get('nombre');
+          await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify({ nombre }) });
+          msg.innerHTML = `<span class="ok">Actualizado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+
+      document.getElementById('deleteProyectoForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('deleteProyectoMsg'); msg.textContent='';
+        try{
+          const id = new FormData(ev.target).get('id');
+          await safeFetch(`${base}/${encodeURIComponent(id)}`, { method:'DELETE' });
+          msg.innerHTML = `<span class="ok">Eliminado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+    }
+
+    // ===== Binds: Vincular / Desvincular (N–M) =====
+    function bindNmVinculos(){
+      const base = BASES['N-M:bi'];
+
+      document.getElementById('vincularForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('vincularMsg'); msg.textContent='';
+        try{
+          const fd = new FormData(ev.target);
           const personaId = fd.get('personaId');
-          const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones/${encodeURIComponent(childId)}`;
-          await safeFetch(url,{ method:'DELETE' });
-        }else if(v === '1-N:uni-b'){
-          const url = `${BASES[v].direcciones}/${encodeURIComponent(childId)}`;
-          await safeFetch(url,{ method:'DELETE' });
-        }else{
-          throw new Error('Eliminar dirección solo aplica a 1–N');
-        }
+          const proyectoId = fd.get('proyectoId');
+          const url = `${base.personas}/${encodeURIComponent(personaId)}/proyectos/${encodeURIComponent(proyectoId)}`;
+          await safeFetch(url, { method:'POST' });
+          msg.innerHTML = `<span class="ok">Vinculado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
 
-        msg.innerHTML = `<span class="ok">Eliminada</span>`;
-        ev.target.reset(); loadList();
-      }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
-    });
+      document.getElementById('desvincularForm')?.addEventListener('submit', async ev=>{
+        ev.preventDefault();
+        const msg = document.getElementById('desvincularMsg'); msg.textContent='';
+        try{
+          const fd = new FormData(ev.target);
+          const personaId = fd.get('personaId');
+          const proyectoId = fd.get('proyectoId');
+          const url = `${base.personas}/${encodeURIComponent(personaId)}/proyectos/${encodeURIComponent(proyectoId)}`;
+          await safeFetch(url, { method:'DELETE' });
+          msg.innerHTML = `<span class="ok">Desvinculado</span>`;
+          ev.target.reset(); loadList();
+        }catch(e){ msg.innerHTML = `<span class="danger">${esc(e.message)}</span>`; }
+      });
+    }
 
     // ===== eventos =====
     rel.addEventListener('change', setVariants);
-    variant.addEventListener('change', ()=>{ rebuildDynamicForms(); loadList(); });
+    variant.addEventListener('change', ()=>{ rebuildForms(); loadList(); });
     document.getElementById('reloadBtn').addEventListener('click', loadList);
 
     // init
