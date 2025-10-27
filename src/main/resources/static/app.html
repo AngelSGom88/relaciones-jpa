@@ -125,6 +125,7 @@
       '1-1:bi':     { personas: 'http://localhost:8081/r11bi/personas' },
       '1-1:uni':    { personas: 'http://localhost:8081/r11uni/personas' },
       '1-N:bi':     { personas: 'http://localhost:8081/r1nbi/personas' },
+      '1-N:uni-a':  { personas: 'http://localhost:8081/r1nuni-a/personas' },
       '1-N:uni-b':  { personas: 'http://localhost:8081/r1nuni-b/personas', direcciones:'http://localhost:8081/r1nuni-b/direcciones' }
     };
 
@@ -137,6 +138,7 @@
         addOpt(variant,'UNI (/r11uni/personas)','1-1:uni');
       }else{
         addOpt(variant,'BI (/r1nbi/personas)','1-N:bi');
+        addOpt(variant,'UNI-A (per → dir)','1-N:uni-a');
         addOpt(variant,'UNI-B (dir → per)','1-N:uni-b');
       }
       const saved = localStorage.getItem('variant');
@@ -158,8 +160,6 @@
 
     function rebuildDynamicForms(){
       const v = variant.value;
-      // Form de añadir hijo: para todas las variantes pedimos datos de dirección,
-      // pero el endpoint cambia (anidado en BI / plano en UNI-B)
       document.getElementById('addChildDynamic').innerHTML = direccionRow('addChild');
 
       // En UNI-B ocultamos el personaId en el form de borrar-hijo, no es necesario
@@ -177,16 +177,16 @@
       try{
         const personas = await safeFetch(personasUrl);
         if(v === '1-N:uni-b'){
-          // Para cada persona, pedimos sus direcciones por query
+          // Para cada persona, pedimos sus direcciones por query separado
           const personasConDirs = await Promise.all(personas.map(async p=>{
             const dirs = await safeFetch(`${BASES[v].direcciones}?personaId=${encodeURIComponent(p.id)}`);
             return { ...p, __dirs: dirs };
           }));
           renderListUniB(personasConDirs);
-        }else if(v === '1-N:bi'){
-          renderList1N_BI(personas);
+        }else if(v === '1-N:bi' || v === '1-N:uni-a'){
+          renderList1N_WithEmbeddedDirs(personas); // BI y UNI-A llevan direcciones embebidas
         }else{
-          renderListSimple(personas); // 1-1 casos
+          renderListSimple(personas); // 1–1 casos
         }
         document.getElementById('loadMsg').textContent = '';
       }catch(e){
@@ -205,7 +205,7 @@
       }).join('');
     }
 
-    function renderList1N_BI(items){
+    function renderList1N_WithEmbeddedDirs(items){
       if(!Array.isArray(items)||items.length===0){ listDiv.innerHTML='<div class="muted">Sin datos.</div>'; return; }
       listDiv.innerHTML = items.map(p=>{
         const hijos = (p.direcciones||[]);
@@ -295,8 +295,8 @@
         };
         const etiqueta = get('etiqueta'); if(etiqueta) body.etiqueta = etiqueta;
 
-        if(v === '1-N:bi'){
-          // POST anidado: /r1nbi/personas/{id}/direcciones
+        if(v === '1-N:bi' || v === '1-N:uni-a'){
+          // POST anidado: /personas/{id}/direcciones
           const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones`;
           await safeFetch(url,{ method:'POST', body:JSON.stringify(body) });
         }else if(v === '1-N:uni-b'){
@@ -320,7 +320,7 @@
         const fd = new FormData(ev.target);
         const childId = fd.get('childId');
 
-        if(v === '1-N:bi'){
+        if(v === '1-N:bi' || v === '1-N:uni-a'){
           const personaId = fd.get('personaId');
           const url = `${BASES[v].personas}/${encodeURIComponent(personaId)}/direcciones/${encodeURIComponent(childId)}`;
           await safeFetch(url,{ method:'DELETE' });

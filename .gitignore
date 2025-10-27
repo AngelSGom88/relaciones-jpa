@@ -5,7 +5,15 @@ target/
 *.war
 *.ear
 hs_err_pid*
+
+# Logs de la app
+logs/
 *.log
+*.log.gz
+
+# Si quieres mantener la carpeta logs vacía en el repo:
+logs/*
+!logs/.gitkeep
 
 ### Maven Wrapper ###
 .mvn/wrapper/maven-wrapper.jar

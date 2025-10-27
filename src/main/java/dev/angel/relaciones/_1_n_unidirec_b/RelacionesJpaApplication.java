@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(
 		scanBasePackages = {
-				"dev.angel.relaciones._1_N_unidirec_b",
+				"dev.angel.relaciones._1_n_unidirec_b",
 				"dev.angel.relaciones.exception"       // handler global
 		}
 )
