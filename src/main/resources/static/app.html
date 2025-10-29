@@ -41,9 +41,7 @@
     <div class="small muted">Los endpoints se fijan automáticamente según la variante.</div>
 </div>
 
-<div class="grid" id="formsGrid">
-    <!-- Se rellenará dinámicamente según la variante -->
-</div>
+<div class="grid" id="formsGrid"></div>
 
 <div class="card">
     <div class="row">
@@ -84,7 +82,9 @@
       '1-N:uni-b':   { personas: 'http://localhost:8081/r1nuni-b/personas',
                        direcciones:'http://localhost:8081/r1nuni-b/direcciones' },
       'N-M:bi':      { personas: 'http://localhost:8081/rnmbi/personas',
-                       proyectos:'http://localhost:8081/rnmbi/proyectos' }
+                       proyectos:'http://localhost:8081/rnmbi/proyectos' },
+      'N-M:uni':     { personas: 'http://localhost:8081/rnmuni/personas',
+                       proyectos:'http://localhost:8081/rnmuni/proyectos' }
     };
 
     function addOpt(sel, label, val){ const o=document.createElement('option'); o.value=val; o.textContent=label; sel.appendChild(o); }
@@ -100,6 +100,7 @@
         addOpt(variant,'UNI-B (dir → per)','1-N:uni-b');
       }else{
         addOpt(variant,'BI (N–M: personas y proyectos)','N-M:bi');
+        addOpt(variant,'UNI (N–M unidireccional)','N-M:uni');
       }
       const saved = localStorage.getItem('variant');
       if(saved && [...variant.options].some(o=>o.value===saved)) variant.value=saved;
@@ -188,7 +189,7 @@
           <input name="proyectoId" type="number" placeholder="ID proyecto" required />
           <button>Desvincular</button><span id="desvincularMsg"></span>
         </form>
-        <div class="small muted">Usa los IDs existentes; si el vínculo ya existe, dará 409.</div>
+        <div class="small muted">Si ya existe el vínculo, devolverá 409.</div>
       </div>`;
     }
 
@@ -201,10 +202,9 @@
       } else if (v==='1-N:bi' || v==='1-N:uni-a' || v==='1-N:uni-b'){
         formsGrid.innerHTML = formPersonasCRUD() + formDirecciones();
         bindPersonasCrud(); bindDireccionesForms();
-        // ocultar personaId en borrar hijo si UNI-B
         const personaIdInp = document.querySelector('#delChildForm [name="personaId"]');
         if (personaIdInp) personaIdInp.parentElement.style.display = (v==='1-N:uni-b') ? 'none' : '';
-      } else if (v==='N-M:bi'){
+      } else if (v==='N-M:bi' || v==='N-M:uni'){
         formsGrid.innerHTML = formPersonasCRUD() + formProyectosCRUD() + formNmVinculos();
         bindPersonasCrud(); bindProyectosCrud(); bindNmVinculos();
       }
@@ -217,7 +217,7 @@
       document.getElementById('loadMsg').textContent = 'Cargando...';
       listDiv.textContent = '';
       try{
-        if(v==='N-M:bi'){
+        if(v==='N-M:bi' || v==='N-M:uni'){
           const personas = await safeFetch(BASES[v].personas);
           renderListNm(personas);
         } else if(v === '1-N:uni-b'){
@@ -386,7 +386,7 @@
 
     // ===== Binds: Proyectos CRUD (N–M) =====
     function bindProyectosCrud(){
-      const base = BASES['N-M:bi'].proyectos;
+      const v = variant.value, base = BASES[v].proyectos;
 
       document.getElementById('createProyectoForm')?.addEventListener('submit', async ev=>{
         ev.preventDefault();
@@ -425,7 +425,7 @@
 
     // ===== Binds: Vincular / Desvincular (N–M) =====
     function bindNmVinculos(){
-      const base = BASES['N-M:bi'];
+      const v = variant.value, base = BASES[v];
 
       document.getElementById('vincularForm')?.addEventListener('submit', async ev=>{
         ev.preventDefault();
