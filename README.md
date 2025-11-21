@@ -77,13 +77,13 @@ mvn clean spring-boot:run
 La aplicación estará disponible en:
 
 ```
-http://localhost:8080
+http://localhost:8081
 ```
 
 ### H2 Console
 
 ```
-http://localhost:8080/h2-console
+http://localhost:8081/h2-console
 ```
 
 ## Cliente HTML
